@@ -1,6 +1,11 @@
-import { discoverSources, resolveApp, type Candidate } from "./discovery";
+import {
+  discoverSources,
+  resolveApp,
+  selectDiverseCandidates,
+  type Candidate,
+} from "./discovery";
 import { extractPage } from "./extract";
-import { fetchPage } from "./fetch";
+import { contentFingerprint, fetchPageChecked } from "./fetch";
 import { IFM_MODEL } from "./ifm";
 import { deriveHeader, synthesizeGuide } from "./synthesize";
 import { inferFacts } from "./infer";
@@ -18,6 +23,7 @@ export interface PipelineOptions {
 }
 
 const CONCURRENCY = 3;
+const FETCH_RETRY_BUDGET = 4;
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {
   const results: R[] = new Array(items.length);
@@ -56,42 +62,91 @@ export async function runPipeline(options: PipelineOptions): Promise<Guide> {
     throw new Error(`No public documentation found for ${resolved.name} (${resolved.domain}).`);
   }
 
-  const selected = candidates.slice(0, maxPages);
+  const selected = selectDiverseCandidates(candidates, maxPages);
+  const selectedUrls = new Set(selected.map((candidate) => candidate.url));
+  const queue = [
+    ...selected,
+    ...candidates.filter((candidate) => !selectedUrls.has(candidate.url)),
+  ];
+  const attemptLimit = Math.min(queue.length, maxPages + FETCH_RETRY_BUDGET);
+
   emit({
     type: "stage",
     id: "fetch",
     status: "start",
-    label: `Reading 0 of ${selected.length} sources`,
-    total: selected.length,
+    label: `Reading 0 of ${maxPages} usable sources`,
+    total: maxPages,
   });
 
-  let fetched = 0;
-  const pages = (
-    await mapLimit(selected, CONCURRENCY, async (candidate: Candidate) => {
-      const page = await fetchPage(candidate.url, resolved.domain);
-      fetched++;
-      if (page) {
+  let attempted = 0;
+  const pages: PageDoc[] = [];
+  const fingerprints = new Map<string, string>();
+
+  while (pages.length < maxPages && queue.length > 0 && attempted < attemptLimit) {
+    const remaining = maxPages - pages.length;
+    const batch = queue.splice(
+      0,
+      Math.min(CONCURRENCY, remaining, attemptLimit - attempted)
+    );
+    attempted += batch.length;
+
+    const outcomes = await Promise.all(
+      batch.map(async (candidate: Candidate) => ({
+        candidate,
+        outcome: await fetchPageChecked(candidate.url, resolved.domain),
+      }))
+    );
+
+    for (const { candidate, outcome } of outcomes) {
+      if (!outcome.page) {
         emit({
           type: "source",
-          url: page.url,
-          title: page.title,
-          status: "ok",
-          tier: page.tier,
+          url: candidate.url,
+          title: candidate.title,
+          status: "failed",
+          reason: outcome.reason ?? "fetch-failed",
+          selection: candidate.selectionReason ?? "reserve",
         });
-        emit({
-          type: "stage",
-          id: "fetch",
-          status: "progress",
-          label: `Reading ${fetched} of ${selected.length} sources`,
-          current: fetched,
-          total: selected.length,
-        });
-      } else {
-        emit({ type: "source", url: candidate.url, title: candidate.title, status: "failed" });
+        continue;
       }
-      return page;
-    })
-  ).filter((p): p is PageDoc => Boolean(p));
+
+      const fingerprint = contentFingerprint(outcome.page.text);
+      const duplicateOf = fingerprints.get(fingerprint);
+      if (duplicateOf) {
+        emit({
+          type: "source",
+          url: outcome.page.url,
+          title: outcome.page.title,
+          status: "failed",
+          reason: "duplicate-content",
+          duplicateOf,
+          selection: candidate.selectionReason ?? "reserve",
+        });
+        continue;
+      }
+
+      fingerprints.set(fingerprint, outcome.page.url);
+      pages.push(outcome.page);
+      emit({
+        type: "source",
+        url: outcome.page.url,
+        title: outcome.page.title,
+        status: "ok",
+        tier: outcome.page.tier,
+        reason: candidate.selectionReason ?? "reserve",
+      });
+    }
+
+    emit({
+      type: "stage",
+      id: "fetch",
+      status: "progress",
+      label: `Reading ${pages.length} of ${maxPages} usable sources (${attempted} attempted)`,
+      current: pages.length,
+      total: maxPages,
+      attempted,
+    });
+  }
 
   if (pages.length === 0) {
     throw new Error(`Documentation was found but could not be read for ${resolved.name}.`);

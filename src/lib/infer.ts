@@ -7,13 +7,71 @@ import type { Claim, Inference, PageDoc } from "./types";
 const REVIEW_SIGNAL =
   /(app review|review process|verification process|verify (?:your )?app|app verification|submit (?:your )?app|publishing review|approval process|requires? (?:review|verification|approval)|under review|app is rejected|unverified app)/i;
 
+/**
+ * Language that indicates a requirement gates review/verification rather than
+ * app creation. These artifacts should not inflate the self-serve setup time.
+ */
+const REVIEW_ONLY_REQUIREMENT =
+  /\breview(?:s|ed|ing)?\b|privileged (?:intents?|scopes?|permissions?)|use[- ]case justification|app(?:lication)? (?:verification|approval|submission)|verification (?:process|requirements?)|approval (?:process|requirements?)/i;
+
+const SETUP_REQUIREMENT_SIGNAL =
+  /\b(?:create|creating|register|registering|set ?up|configure|configured|install|generate|retrieve|obtain|developer (?:portal|console|dashboard)|app creation|application creation|redirect uri|callback url|client id|client secret)\b/i;
+
+interface RequirementFilter {
+  setupText: string;
+  excludedReviewOnly: boolean;
+}
+
+/**
+ * Remove review submission requirements from the setup estimate. Review
+ * clauses are dropped as a block, including semicolon list items that inherit
+ * the review context ("For review: a privacy policy; security measures").
+ */
+function filterReviewOnlyRequirements(requirements: string): RequirementFilter {
+  if (!REVIEW_ONLY_REQUIREMENT.test(requirements)) {
+    return { setupText: requirements, excludedReviewOnly: false };
+  }
+
+  // With no setup action anywhere, the whole claim is review evidence.
+  if (!SETUP_REQUIREMENT_SIGNAL.test(requirements)) {
+    return { setupText: "", excludedReviewOnly: true };
+  }
+
+  const parts = requirements.split(/(?<=[.!?;])\s+|\n+/);
+  const kept: string[] = [];
+  let inReviewList = false;
+  let excludedReviewOnly = false;
+
+  for (const raw of parts) {
+    const part = raw.trim();
+    if (!part) continue;
+
+    if (REVIEW_ONLY_REQUIREMENT.test(part)) {
+      inReviewList = true;
+      excludedReviewOnly = true;
+    } else if (inReviewList && !SETUP_REQUIREMENT_SIGNAL.test(part)) {
+      // A semicolon/newline continuation of the review list.
+      excludedReviewOnly = true;
+    } else {
+      inReviewList = false;
+      kept.push(part);
+    }
+
+    if (/[.!?]\s*$/.test(part)) inReviewList = false;
+  }
+
+  return { setupText: kept.join(" "), excludedReviewOnly };
+}
+
 function estimateSetup(claims: Claim[]): { value: string; basis: string; confidence: number } | null {
   const requirements = claims.find((c) => c.slot === "requirements")?.value;
   if (!requirements) return null;
 
+  const filtered = filterReviewOnlyRequirements(requirements);
+
   // Ignore clauses that explicitly say something is NOT required. Otherwise
   // "no privacy policy, domain, logo, or video is required" inflates the estimate.
-  const cleaned = requirements
+  const cleaned = filtered.setupText
     .split(/(?<=[.;])\s+/)
     .filter(
       (sentence) =>
@@ -43,14 +101,17 @@ function estimateSetup(claims: Claim[]): { value: string; basis: string; confide
 
   const value =
     artifacts.length === 0 ? "~5-10 minutes" : artifacts.length <= 2 ? "~15-30 minutes" : "~30-60 minutes";
+  const reviewNote = filtered.excludedReviewOnly
+    ? " Review-only requirements were excluded because they gate review, not app creation."
+    : "";
 
   return {
     value,
     basis: `Estimated from ${
       artifacts.length > 0
         ? `these prerequisite artifacts: ${artifacts.join(", ")}`
-        : "a self-serve form with no prerequisite artifacts"
-    }. The provider does not publish a duration, so this is a heuristic, not a quote.`,
+        : "a self-serve form with no setup prerequisite artifacts"
+    }.${reviewNote} The provider does not publish a duration, so this is a heuristic, not a quote.`,
     confidence: 0.4,
   };
 }

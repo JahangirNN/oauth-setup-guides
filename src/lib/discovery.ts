@@ -7,11 +7,18 @@ export interface SearchResult {
   snippet: string;
 }
 
+export const CANDIDATE_FACETS = ["setup", "scopes", "review", "auth"] as const;
+export type CandidateFacet = (typeof CANDIDATE_FACETS)[number];
+
 export interface Candidate {
   url: string;
   title: string;
   score: number;
   reason: string;
+  /** Coverage buckets inferred from the URL and title. */
+  facets?: CandidateFacet[];
+  /** Set by selectDiverseCandidates; keeps selection auditable in diagnostics. */
+  selectionReason?: string;
 }
 
 const UA =
@@ -20,7 +27,14 @@ const UA =
 const BLOCKED_HOSTS =
   /(reddit|youtube|medium\.com|quora|linkedin|instagram|tiktok|pinterest)/i;
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/**
+ * Search is the least reliable discovery path. When the deterministic paths
+ * already cover a full page budget, spending network time on DuckDuckGo only
+ * adds latency (and often a captcha response). Thin apps still fall through.
+ */
+const SEARCH_FALLBACK_CANDIDATES = 6;
+const SEARCH_PHASE_BUDGET_MS = 6_000;
+const SEARCH_QUERY_TIMEOUT_MS = 3_000;
 
 /** A small accelerator for the apps this demo is built around. Unknown apps use the generic crawl. */
 const KNOWN_DOC_ROOTS: Record<string, string[]> = {
@@ -200,11 +214,11 @@ async function fetchTextCapped(
   }
 }
 
-export async function ddgSearch(query: string, limit = 10): Promise<SearchResult[]> {
+export async function ddgSearch(query: string, limit = 10, timeoutMs = 20_000): Promise<SearchResult[]> {
   try {
     const res = await fetch(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
       headers: { "User-Agent": UA, Accept: "text/html" },
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return [];
     const html = await res.text();
@@ -437,6 +451,15 @@ export async function resolveApp(input: string): Promise<ResolvedApp> {
   );
 }
 
+/** A docs host on the provider's own brand, including a docs subdomain on another TLD. */
+export function isProviderHost(host: string, appDomain: string): boolean {
+  const appBase = registrableDomain(appDomain);
+  const hostBase = registrableDomain(host);
+  if (hostBase === appBase) return true;
+  const sameBrand = hostBase.split(".")[0] === appBase.split(".")[0];
+  return sameBrand && /^(?:docs?|developers?|api|learn|support|help)\./i.test(host);
+}
+
 function scoreCandidate(url: string, appDomain: string): { score: number; reason: string } {
   let host = "";
   let pathname = "";
@@ -449,8 +472,11 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
   }
 
   const firstParty = registrableDomain(host) === registrableDomain(appDomain);
-  let score = firstParty ? 5 : 0;
-  const reasons: string[] = [firstParty ? "first-party" : "third-party"];
+  const providerHost = isProviderHost(host, appDomain);
+  let score = providerHost ? 5 : 0;
+  const reasons: string[] = [
+    firstParty ? "first-party" : providerHost ? "provider-brand" : "third-party",
+  ];
 
   if (host === appDomain) {
     score += 2;
@@ -529,6 +555,13 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
     score -= 15;
     reasons.push("console-ui");
   }
+  // An app-list/create URL is useful evidence for the console link, but it is
+  // usually a login-gated SPA and a poor page to extract prose from. Prefer the
+  // docs page that explains the flow.
+  if (/\/applications(?:\/|$)/.test(pathname) && !/\/docs?\//.test(pathname)) {
+    score -= 12;
+    reasons.push("console-ui");
+  }
   // Section-level relevance. Consumer and maintenance docs crowd out the
   // pages that actually explain how to create an app.
   if (/\/building-oauth-apps\//.test(pathname)) {
@@ -581,6 +614,108 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
   }
 
   return { score, reason: reasons.join(",") };
+}
+
+const ASSET_PATH =
+  /\.(?:avif|bmp|css|gif|ico|jpe?g|js|json|mp3|mp4|pdf|png|svg|tar|tgz|ttf|webp|woff2?|zip)(?:$|[?#])/i;
+const NOISE_PATH =
+  /\/(?:changelog|blog|news|release-notes|whats-new|roadmap|pricing|careers|jobs|events|webinars|customers|case-studies|community|forum)(?:\/|$)/i;
+
+/** Reject URLs that cannot produce documentation text (images, scripts, API endpoints). */
+export function isUsefulCandidateUrl(raw: string): boolean {
+  // llms-full.txt and soft-404 HTML shells can contain script text that looks
+  // like a URL. Do not hand those fragments to the fetcher.
+  if (
+    raw.length > 500 ||
+    /[\\{}<>"'`]/.test(raw) ||
+    /[\u0000-\u001f]/.test(raw)
+  ) {
+    return false;
+  }
+  const url = safeUrl(raw);
+  if (!url) return false;
+  const pathname = url.pathname.toLowerCase();
+
+  if (ASSET_PATH.test(pathname)) return false;
+  if (NOISE_PATH.test(pathname)) return false;
+  if (
+    /\/login\/oauth\//.test(pathname) ||
+    /\/oauth2?\/(?:access_token|authorize|request_token|token)(?:\/|$)/.test(pathname)
+  ) {
+    return false;
+  }
+  if (/^api\./i.test(url.hostname) && /^\/(?:oauth2?|v[12])\b/.test(pathname)) return false;
+  if (/\/\.well-known\//.test(pathname)) return false;
+
+  return true;
+}
+
+const FACET_PATTERNS: Record<CandidateFacet, RegExp> = {
+  setup:
+    /\b(?:create|register|set ?up|configure|getting[\s-]?started|quick[\s-]?start|app creation|application creation|new (?:oauth )?(?:app|application|client|integration))\b/i,
+  scopes: /\b(?:scopes?|permissions?|sensitive|restricted)\b/i,
+  review: /\b(?:review|verif(?:y|ied|ication)|approval|approve|publish(?:ing)?|submission|submit|compliance|assessment)\b/i,
+  auth: /\b(?:oauth ?2?|authoriz(?:e|ation|ing)|authentication|auth|access tokens?|refresh tokens?|bearer tokens?|redirect uri|callback url|client (?:id|secret)|public connections?)\b/i,
+};
+
+/** Deterministic coverage buckets from the URL and link title. */
+export function candidateFacets(candidate: Pick<Candidate, "url" | "title">): CandidateFacet[] {
+  let decoded = candidate.url;
+  try {
+    decoded = decodeURIComponent(candidate.url);
+  } catch {
+    // keep the raw URL
+  }
+  const hay = `${decoded} ${candidate.title}`;
+  return CANDIDATE_FACETS.filter((facet) => FACET_PATTERNS[facet].test(hay));
+}
+
+function rankCandidates(candidates: Candidate[]): Candidate[] {
+  return [...candidates].sort((a, b) => b.score - a.score || a.url.localeCompare(b.url));
+}
+
+/**
+ * Pick a ranked page per coverage facet before filling with the best remaining
+ * pages. Deterministic: score desc, then URL. This keeps six OAuth reference
+ * pages from crowding out the create-app, scopes, and review pages.
+ */
+export function selectDiverseCandidates(candidates: Candidate[], maxPages: number): Candidate[] {
+  const target = Math.floor(maxPages);
+  if (!Number.isFinite(target) || target <= 0) return [];
+
+  const ranked = rankCandidates(candidates);
+  const selected: Candidate[] = [];
+  const seen = new Set<string>();
+
+  const take = (candidate: Candidate, reason: string) => {
+    selected.push({
+      ...candidate,
+      facets: candidate.facets ?? candidateFacets(candidate),
+      selectionReason: reason,
+    });
+    seen.add(candidate.url);
+  };
+
+  const top = ranked[0];
+  if (top) take(top, "top-score");
+
+  const covered = new Set<CandidateFacet>(top ? candidateFacets(top) : []);
+  for (const facet of CANDIDATE_FACETS) {
+    if (selected.length >= target) break;
+    if (covered.has(facet)) continue;
+    const best = ranked.find((c) => !seen.has(c.url) && candidateFacets(c).includes(facet));
+    if (!best) continue;
+    take(best, `coverage:${facet}`);
+    for (const coveredFacet of candidateFacets(best)) covered.add(coveredFacet);
+  }
+
+  for (const candidate of ranked) {
+    if (selected.length >= target) break;
+    if (seen.has(candidate.url)) continue;
+    take(candidate, `fill:${candidateFacets(candidate)[0] ?? "general"}`);
+  }
+
+  return selected;
 }
 
 function canonicalKey(raw: string): string {
@@ -639,7 +774,13 @@ function titleAdjustment(title: string): number {
 }
 
 function isOauthLink(link: ExtractedLink): boolean {
-  return /oauth/i.test(link.url) || /oauth/i.test(link.text);
+  const hay = `${link.url} ${link.text}`;
+  return (
+    /oauth/i.test(hay) ||
+    /(authoriz(?:e|ation|ing)|authentication|access.?token|bearer.?token|public.?connection)/i.test(
+      hay
+    )
+  );
 }
 
 function isHubLink(link: ExtractedLink): boolean {
@@ -683,23 +824,52 @@ async function fromLlmsTxt(domain: string, appDomain: string): Promise<Candidate
   const out: Candidate[] = [];
   for (const result of pages) {
     if (result.status !== "fulfilled" || !result.value || result.value.status !== 200) continue;
-    for (const line of result.value.text.split("\n")) {
-      const matches = [...line.matchAll(/https?:\/\/[^\s)\]"'>]+/g)];
-      for (const match of matches) {
-        const found = match[0].replace(/[.,;`]+$/, "");
+    const body = result.value.text;
+    // A soft-404 SPA can return HTML with a 200 status. Its inline scripts may
+    // contain URL-shaped strings, so only parse actual text indexes.
+    if (!body || /<(?:!doctype|html|head|body|script)\b/i.test(body.slice(0, 2_000))) continue;
+
+    for (const rawLine of body.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.length > 1_000) continue;
+      if (line.includes("`") || /[{}"]/.test(line) || /data-theme|<\/?script/i.test(line)) continue;
+
+      const markdownLinks = [...line.matchAll(/\[([^\]]{1,200})\]\((https?:\/\/[^\s)]+)\)/g)].map(
+        (m) => ({ title: m[1].trim(), url: m[2] })
+      );
+      const plainLinks = [...line.matchAll(/https?:\/\/[^\s)\]"'<>\\]+/g)].map((m) => ({
+        title: line.replace(/https?:\/\/\S+/g, "").replace(/[()[\]*]/g, "").trim(),
+        url: m[0],
+      }));
+      const links = markdownLinks.length > 0 ? markdownLinks : plainLinks;
+
+      for (const link of links) {
+        const found = link.url.replace(/[.,;:`]+$/, "");
+        const hay = `${found} ${link.title}`;
         if (
-          !/(oauth|getting.?started|quick.?start|create.*app|register.*app|app.*setup|developer.*portal)/i.test(
-            found
+          !/(oauth|authoriz|authentication|getting.?started|quick.?start|create.*app|register.*app|app.*setup|developer.*portal|access.?token|redirect.?uri)/i.test(
+            hay
           )
         ) {
           continue;
         }
         if (found.includes("`") || found.includes("<")) continue;
-        const s = scoreCandidate(found, appDomain);
-        if (s.score < 5) continue;
-        const title = line.replace(/https?:\/\/\S+/g, "").replace(/[()[\]*]/g, "").trim().slice(0, 100);
+        const parsed = safeUrl(found);
+        if (!parsed) continue;
+        parsed.hash = "";
+        // Homepages are not evidence pages; doctrine-specific roots are added
+        // separately and a bare origin usually comes from metadata noise.
+        if (parsed.pathname === "/") continue;
+        const cleanUrl = parsed.toString();
+        if (!isProviderHost(parsed.hostname, appDomain)) continue;
+        const s = scoreCandidate(cleanUrl, appDomain);
+        if (s.score <= 0) continue;
+        const title =
+          link.title.replace(/[()[\]*]/g, "").replace(/\s+/g, " ").trim().slice(0, 100) ||
+          parsed.pathname.split("/").filter(Boolean).pop() ||
+          cleanUrl;
         out.push({
-          url: found,
+          url: cleanUrl,
           title,
           score: s.score + 3 + titleAdjustment(title),
           reason: `llms.txt,${s.reason}`,
@@ -758,10 +928,17 @@ async function fromDocsCrawl(domain: string, appDomain: string): Promise<Candida
     const page = rootPages[i];
     if (page.status !== "fulfilled" || !page.value || page.value.status !== 200) continue;
     if (!/<a\s/i.test(page.value.text)) continue;
-    rootLinks.push(...extractLinks(page.value.text, roots[i]));
+    rootLinks.push(...extractLinks(page.value.text, page.value.finalUrl || roots[i]));
   }
 
-  const direct = rootLinks.filter(isOauthLink);
+  const providerLinks = rootLinks.filter((link) => {
+    const host = safeUrl(link.url)?.hostname ?? "";
+    return isProviderHost(host, appDomain);
+  });
+
+  const direct = providerLinks
+    .filter(isOauthLink)
+    .filter((link) => scoreCandidate(link.url, appDomain).score > 0);
   if (direct.length >= 4) {
     return direct.map((link) => {
       const s = scoreCandidate(link.url, appDomain);
@@ -775,7 +952,7 @@ async function fromDocsCrawl(domain: string, appDomain: string): Promise<Candida
   }
 
   const hubLinks = [...new Map(
-    rootLinks.filter(isHubLink).map((l) => [l.url, l])
+    providerLinks.filter(isHubLink).map((l) => [l.url, l])
   ).values()]
     .sort((a, b) => {
       const rank = (l: ExtractedLink) =>
@@ -792,8 +969,14 @@ async function fromDocsCrawl(domain: string, appDomain: string): Promise<Candida
   for (let i = 0; i < hubPages.length; i++) {
     const page = hubPages[i];
     if (page.status !== "fulfilled" || !page.value || page.value.status !== 200) continue;
-    const links = extractLinks(page.value.text, hubLinks[i].url);
-    found.push(...links.filter(isOauthLink));
+    const links = extractLinks(page.value.text, page.value.finalUrl || hubLinks[i].url);
+    found.push(
+      ...links.filter((link) => {
+        if (!isOauthLink(link)) return false;
+        const host = safeUrl(link.url)?.hostname ?? "";
+        return isProviderHost(host, appDomain);
+      })
+    );
   }
 
   return [...new Map(found.map((l) => [l.url, l])).values()].map((link) => {
@@ -823,6 +1006,7 @@ async function fromPathProbes(domain: string, appDomain: string): Promise<Candid
 
   return pages
     .flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []))
+    .filter((page) => isProviderHost(safeUrl(page.url)?.hostname ?? "", appDomain))
     .map((page) => {
       const s = scoreCandidate(page.url, appDomain);
       return { url: page.url, title: page.title || page.url, score: s.score - 2, reason: `probe,${s.reason}` };
@@ -830,7 +1014,12 @@ async function fromPathProbes(domain: string, appDomain: string): Promise<Candid
     .filter((c) => c.score > 0);
 }
 
-async function fromSearch(name: string, domain: string, appDomain: string): Promise<Candidate[]> {
+async function fromSearch(
+  name: string,
+  domain: string,
+  appDomain: string,
+  budgetMs = SEARCH_PHASE_BUDGET_MS
+): Promise<Candidate[]> {
   const queries = [
     `site:${domain} "create an OAuth app" OR "OAuth application" redirect URI`,
     `site:docs.${domain} OAuth app redirect URI client secret`,
@@ -839,44 +1028,77 @@ async function fromSearch(name: string, domain: string, appDomain: string): Prom
     `"${name}" OAuth app verification review scopes`,
   ];
   const out: Candidate[] = [];
+  const deadline = Date.now() + Math.max(0, budgetMs);
+
   for (const q of queries) {
-    const results = await ddgSearch(q, 8);
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    const results = await ddgSearch(q, 8, Math.min(SEARCH_QUERY_TIMEOUT_MS, remaining));
     for (const r of results) {
       if (!/oauth/i.test(r.url + " " + r.title + " " + r.snippet)) continue;
+      const host = safeUrl(r.url)?.hostname ?? "";
+      if (!isProviderHost(host, appDomain)) continue;
       const s = scoreCandidate(r.url, appDomain);
       if (s.score < 5) continue;
       out.push({ url: r.url, title: r.title, score: s.score, reason: `search,${s.reason}` });
     }
-    await sleep(1200);
     if (out.length >= 14) break;
   }
   return out;
 }
 
+function prepareCandidates(candidates: Candidate[]): Candidate[] {
+  return dedupe(candidates)
+    .filter((c) => isUsefulCandidateUrl(c.url))
+    .filter((c) => c.score > 0)
+    .filter(
+      (c) =>
+        c.reason.startsWith("known-root") ||
+        /(oauth|authoriz|authentication|access.?token|bearer.?token|public.?connection)/i.test(
+          c.url + " " + c.title
+        ) ||
+        (/(getting.?started|quick.?start|create.*app|register.*app|app.*setup)/i.test(
+          c.url + " " + c.title
+        ) &&
+          (c.reason.startsWith("known-root") || c.score >= 10)) ||
+        c.score >= 12
+    )
+    .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url));
+}
+
+/**
+ * Skip the search phase when deterministic discovery already found enough
+ * candidates to fill the normal page budget. A known root alone is not enough:
+ * some providers expose only one or two useful roots, and those thin apps still
+ * need the bounded search fallback. Exported so the condition can be tested
+ * without making network requests.
+ */
+export function shouldSearchForMoreCandidates(
+  candidates: Candidate[],
+  minimumCandidates = SEARCH_FALLBACK_CANDIDATES
+): boolean {
+  return candidates.length < Math.max(1, Math.floor(minimumCandidates));
+}
+
 export async function discoverSources(name: string, domain: string): Promise<Candidate[]> {
-  const tasks = [
+  const deterministicTasks = [
     fromKnownRoots(domain, domain),
     fromLlmsTxt(domain, domain),
     fromSitemap(domain, domain),
     fromDocsCrawl(domain, domain),
     fromPathProbes(domain, domain),
-    fromSearch(name, domain, domain),
   ];
 
-  const settled = await Promise.allSettled(tasks);
-  const all = settled.flatMap((s) => (s.status === "fulfilled" ? s.value : []));
+  const settled = await Promise.allSettled(deterministicTasks);
+  const deterministic = prepareCandidates(
+    settled.flatMap((s) => (s.status === "fulfilled" ? s.value : []))
+  );
 
-  return dedupe(all)
-    .filter((c) => c.score > 0)
-    .filter(
-      (c) =>
-        c.reason.startsWith("known-root") ||
-        /oauth/i.test(c.url + " " + c.title) ||
-        /(getting.?started|quick.?start|create.*app|register.*app|app.*setup)/i.test(
-          c.url + " " + c.title
-        ) ||
-        c.score >= 12
-    )
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
+  const searched = shouldSearchForMoreCandidates(deterministic)
+    ? await fromSearch(name, domain, domain)
+    : [];
+
+  return prepareCandidates([...deterministic, ...searched])
+    .slice(0, 10)
+    .map((c) => ({ ...c, facets: candidateFacets(c) }));
 }

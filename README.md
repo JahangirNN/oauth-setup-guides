@@ -75,7 +75,7 @@ To debug discovery without spending model tokens:
 npx tsx scripts/discover.ts "linear.app"
 ```
 
-This prints the resolved app and the scored candidates (up to 10) with their reasons (`known-root`, `llms.txt`, `sitemap`, `crawl`, `probe`, `search`). Use it when a run finds nothing or selects the wrong pages. `npx tsx scripts/ddg.ts "<query>"` probes DuckDuckGo directly, and `npx tsx scripts/judge-test.ts data/generated/<guide>.json` runs the judge against a saved guide.
+This prints the resolved app, the scored candidates (up to 10) with their reasons (`known-root`, `llms.txt`, `sitemap`, `crawl`, `probe`, `search`), and the deterministic coverage-aware selection for the requested `--pages` value. Use it when a run finds nothing or selects the wrong pages. `npx tsx scripts/ddg.ts "<query>"` probes DuckDuckGo directly, and `npx tsx scripts/judge-test.ts data/generated/<guide>.json` runs the judge against a saved guide.
 
 ## What to try
 
@@ -111,9 +111,9 @@ resolveApp → discoverSources → fetchPage → extractPage → verifyClaims
 ```
 
 1. **`resolveApp`** turns a URL into its registrable domain, or a name into a domain via a known map, homepage probes, Wikidata, and DuckDuckGo as a last resort.
-2. **`discoverSources`** runs six discovery paths in parallel: known doc roots, `llms.txt`, sitemap, docs crawl, path probes, and search. It scores, deduplicates, and returns up to 10 candidates; the pipeline takes the first `maxPages` (default 6).
-3. **`fetchPage`** reads each page through Jina Reader first and a direct HTML fetch with tag stripping as fallback, caches it on disk for 7 days, and assigns a source tier from the domain and path.
-4. **`extractPage`** makes one IFM call per page with a strict JSON schema and 12 fixed slots. The model must return `found`, `value`, and a word-for-word `quote`; three pages run in parallel.
+2. **`discoverSources`** runs five deterministic discovery paths in parallel: known doc roots, `llms.txt`, sitemap, docs crawl, and path probes. It scores, filters, and deduplicates them, then returns up to 10 candidates. Search is a bounded fallback only when those paths are thin. The pipeline picks a deterministic coverage-aware set of up to `maxPages` (default 6), preferring the best available setup/create, scopes, review/verification, and auth/token pages before filling with the highest-scoring remainder.
+3. **`fetchPage`** reads each page through Jina Reader first and a direct HTML fetch with tag stripping as fallback, caches it on disk for 7 days, and assigns a source tier from the domain and path. Login walls, soft 404s, access-denied screens, and JavaScript shells are rejected; the pipeline then tries the next-best candidate within a bounded retry budget. Pages with duplicate text are skipped.
+4. **`extractPage`** makes one IFM call per page with a strict JSON schema and 12 fixed slots. The model must return `found`, `value`, and a word-for-word `quote`; three pages run in parallel. On long pages the prompt carries the intro plus keyword-dense slices around setup, scopes, review, redirect, and token sections; quote verification still runs against the full page text. A `finish=length` failure gets one retry with a tighter excerpt.
 5. **`verifyClaims`** normalizes page text and quotes, requires a substring match (exact first, then loose), and applies deterministic guards: slot keywords, a console-URL check for `appCreationUrl`, and a workspace-admin-versus-provider-review check. Rejected quotes are counted and dropped.
 6. **`judgeClaims`** is an optional IFM audit of `(slot, value, quote)`. It is skipped unless the caller passes `judge: true` or the CLI gets `--judge`.
 7. **`mergeClaims`** keeps the strongest claim per slot, preferring lower source tiers and exact matches, and counts conflicts between tier 1–2 claims.
@@ -169,7 +169,7 @@ The stored evidence summary records pages fetched, quotes verified, quotes rejec
 
 **Uncertain:**
 
-- Setup times are heuristics. The inference layer estimates from the prerequisite artifacts the docs list; providers rarely publish a duration. A 15–30 minute estimate is a planning aid, not a measurement.
+- Setup times are heuristics. The inference layer estimates from app-creation prerequisite artifacts the docs list; provider review requirements such as a policy or security check submitted for approval are excluded. A 15–30 minute estimate is a planning aid, not a measurement.
 - Discovery quality varies by provider. Sites with docs on a separate domain, JavaScript-heavy consoles, or few OAuth-specific pages can produce low coverage. Coverage is `medium` on the shipped Meta guide and `high` only when the docs are dense and first-party.
 - Source tiers are domain-based. When a provider's docs live on a separate registrable domain, exact quotes from them can be marked `inferred` rather than `documented`. An earlier `meta.com` run is the clearest example: its docs are on `developers.facebook.com`. The shipped Meta guide resolves the app to `facebook.com` so its docs are first-party.
 - The generated prose is constrained by prompts and checked for numeric/URL grounding, but it is not formally proven. A human should review any guide before relying on it.
@@ -185,7 +185,7 @@ The stored evidence summary records pages fetched, quotes verified, quotes rejec
 - **The judge is disabled by default.** Deterministic guards catch wrong slots, docs URLs in the console slot, and workspace-admin approval mixed up with provider review; they do not catch every semantic mismatch.
 - **Latency is 60–180 seconds for a cold run.** At the time of writing, the stored runs range from about 14 to 169 seconds, depending on page count and cache.
 - **No retry queue.** A failed run must be retried by hand. There is a single 429/length retry inside one model call, but no durable job or resume.
-- **No automated test suite.** Verification is the pipeline's quote checks plus the CLI, not a unit or integration test harness.
+- **There is no full end-to-end test suite.** `npm run selftest` covers the deterministic helpers and guards (selection, page usability, excerpting, quote matching, header derivation); verification of live discovery still comes from the CLI and the pipeline's quote checks.
 - **This is not production readiness, legal, or compliance advice.** It is a research aid with visible evidence boundaries.
 
 ## Deployment (Vercel + Upstash)

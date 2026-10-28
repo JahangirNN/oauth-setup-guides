@@ -16,7 +16,7 @@ function parseReview(value: string | null): GuideHeader["reviewRequired"] {
   // Conditional review must win over a bare "no" later in the sentence:
   // "Yes, but only for certain scopes" is not a no-review app.
   if (
-    /(sometimes|may require|depending|conditional|for sensitive|only for|only if|only when|when you request|if you request|if your app|certain scopes|some scopes|scopes require|requires approval|requires review)/.test(
+    /(sometimes|may require|depending|conditional|for sensitive|for restricted|for privileged|for gated|only for|only if|only when|when you request|if you request|if your app|certain scopes|some scopes|some features|some intents|some permissions|scopes require|sensitive scopes?|restricted scopes?|privileged intents?|applies only to)/.test(
       v
     )
   ) {

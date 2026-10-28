@@ -33,6 +33,17 @@ assert.equal(
     .reviewRequired,
   "yes"
 );
+assert.equal(
+  deriveHeader("Example", "example.com", [claim("Yes, every app requires approval.")], [])
+    .reviewRequired,
+  "yes",
+  "universal review must not be mistaken for conditional review"
+);
+assert.equal(
+  deriveHeader("Example", "example.com", [claim("Sensitive scopes require approval.")], [])
+    .reviewRequired,
+  "sometimes"
+);
 
 assert.equal(guideLooksComplete("Final will be here"), false);
 assert.equal(guideLooksComplete("## Do you need your own OAuth app?\n\nToo short."), false);

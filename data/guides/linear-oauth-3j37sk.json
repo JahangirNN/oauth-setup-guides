@@ -1,0 +1,197 @@
+{
+  "slug": "linear-oauth-3j37sk",
+  "header": {
+    "appName": "Linear",
+    "domain": "linear.app",
+    "tagline": "Linear OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "https://linear.app/settings/api/applications/new",
+    "setupTime": "~5-10 minutes",
+    "reviewRequired": "no",
+    "reviewTime": "No review required",
+    "totalTime": "~5-10 minutes",
+    "canIndividualFinish": "yes",
+    "difficulty": {
+      "setup": 1,
+      "gate": 1,
+      "time": 1,
+      "overall": 1
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "high",
+    "reviewNote": "No app review, verification, or approval process appears in the 4 official sources read. This is inferred from absence, not from a policy statement.",
+    "setupNote": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nIf your agent will act on behalf of users in their Linear accounts, you need your own OAuth app. The creation URL is documented and an individual can complete setup. The docs define `developer.name` as “The person or company responsible for the application,” not a required company entity. No separate review or verification gate is documented.\n\n## Before you start\n\n- Dedicated workspace: the Linear docs say it is **highly recommended** to create a workspace for managing the OAuth2 application, because each admin user will have access.\n- Prepare absolute HTTP or HTTPS redirect callback URLs. The manifest field `oauth.redirect_uris` is repeatable, requires 1–32 unique values, and each value must be an absolute HTTP or HTTPS URL.\n- Choose an `oauth.client_name` between 2 and 80 characters, without the string `Linear` and without `http://` or `https://`.\n- The docs do not state requirements for a privacy policy, homepage, verified domain, logo, demo video, or business verification.\n- Estimated at about 30–60 minutes from the documented steps; the provider does not publish a duration.\n\n## Step-by-step setup\n\n1. Go to the documented [OAuth2 Application creation page](https://linear.app/settings/api/applications/new) and configure the redirect callback URLs to your application.\n2. Provide `oauth.redirect_uris`: absolute HTTP or HTTPS URLs, minimum 1 item, maximum 32 items, values unique.\n3. Provide `oauth.client_name`: the user-visible app name, required for a complete setup. It is rejected if under 2 or over 80 characters, contains `Linear`, or contains `http://` or `https://`.\n4. Provide `oauth.grant_types`: repeatable, allowed values are `authorization_code` and `client_credentials`; `authorization_code` is always required.\n5. Provide `developer.name`: required for a complete setup. The docs describe it as the person or company responsible for the application.\n6. The app is created via the OAuth2 Application form; `client_id` and `client_secret` are provided.\n\n## Scopes\n\nThe documented scope list is comma-separated:\n\n- `read` — read access for the user’s account. This scope is always present.\n- `write` — write access for the user’s account. If your application only needs to create comments, the docs point to a more targeted scope.\n- `issues:create` — allows creating and updating issues, and creating their attachments.\n- `comments:create` — allows creating new issue comments.\n- `timeSchedule:write` — allows creating and modifying time schedules.\n- `admin` — full access to admin-level endpoints. You should never ask for this permission unless it is absolutely needed.\n\nNo sensitive vs restricted classification is documented.\n\n## Approval and review\n\nNo review process is documented; this appears to be self-serve. Because no review or verification step appears in the sources, there is also no documented unverified state. The documented gate is creation-time validation of the manifest fields above.\n\n## Troubleshooting\n\n- If `oauth.client_name` is rejected, check length and banned strings: under 2 or over 80 characters, contains `Linear`, or contains `http://` or `https://`.\n- If the redirect list is invalid, check that URLs are absolute HTTP or HTTPS, there is at least 1 and no more than 32, and values are unique.\n- If grant types are invalid, only `authorization_code` and `client_credentials` are allowed, and `authorization_code` is always required.\n- Runtime OAuth failures, token errors, and scope-related failures are not documented in the available sources.\n\n## Rollback\n\nThe documented credential replacement action is in the Linear settings page under **Settings** → **API**: select **Rotate secret** next to the credential you want to replace.\n\nNot documented: whether the old secret remains usable, how long rotation takes, or whether rotation forces users to reauthorize.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. No provider review or verification step appears in the sources reviewed; confirm that with the provider before launch. The remaining work is console setup and credential handling.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- Access-token lifetime, refresh-token behavior, and rotation details.\n- A sensitive/restricted classification for scopes.\n- Any published review or verification duration.\n- Any documented requirement for privacy policy, homepage, verified domain, logo, demo video, or business verification.\n- What happens after secret rotation beyond the rotation action itself.",
+  "claims": [
+    {
+      "id": "9962a7_appCreationUrl",
+      "slot": "appCreationUrl",
+      "value": "https://linear.app/settings/api/applications/new",
+      "quote": "Create a new [OAuth2 Application](https://linear.app/settings/api/applications/new) and configure the redirect callback URLs to your application.",
+      "sourceUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "sourceTitle": "OAuth 2.0 authentication",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:24.000Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a576fa_canIndividualFinish",
+      "slot": "canIndividualFinish",
+      "value": "Yes — an individual can complete setup; developer.name is defined as 'The person or company responsible for the application', not a required company entity.",
+      "quote": "#### `developer.name`[...]\n\nThe person or company responsible for the application.\n\n*   Required for a complete setup",
+      "sourceUrl": "https://linear.app/developers/oauth-app-manifests",
+      "sourceTitle": "OAuth application manifests",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:27.871Z",
+      "match": "loose",
+      "status": "documented",
+      "confidence": 0.8600000000000001
+    },
+    {
+      "id": "9962a7_consoleName",
+      "slot": "consoleName",
+      "value": "Linear settings page (Settings → API)",
+      "quote": "From your application’s settings page in Linear, under **Settings** → **API**, select **Rotate secret** next to the credential you want to replace.",
+      "sourceUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "sourceTitle": "OAuth 2.0 authentication",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:24.000Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a576fa_redirectRules",
+      "slot": "redirectRules",
+      "value": "oauth.redirect_uris must be absolute HTTP or HTTPS URLs, the parameter is repeatable, minimum 1 item, maximum 32 items, and values must be unique.",
+      "quote": "*   Format: absolute HTTP or HTTPS URL\n*   Required for a complete setup\n*   Repeatable: yes\n*   Minimum items: 1\n*   Maximum items: 32\n*   Values must be unique",
+      "sourceUrl": "https://linear.app/developers/oauth-app-manifests",
+      "sourceTitle": "OAuth application manifests",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:27.871Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a576fa_rejectionCauses",
+      "slot": "rejectionCauses",
+      "value": "oauth.client_name is rejected if it is under 2 or over 80 characters, contains 'Linear', or contains 'http://' or 'https://'.",
+      "quote": "The user-visible name of the OAuth app.\n\n*   Required for a complete setup\n*   Min length: 2\n*   Max length: 80\n*   Must not contain `Linear`\n*   Must not contain `http://` or `https://`",
+      "sourceUrl": "https://linear.app/developers/oauth-app-manifests",
+      "sourceTitle": "OAuth application manifests",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:27.871Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "9962a7_requirements",
+      "slot": "requirements",
+      "value": "Highly recommended to create a dedicated workspace for managing the OAuth2 application, since each admin user will have access. The app is created via the OAuth2 Application form where client_id and client_secret are provided. No privacy policy, homepage, verified domain, logo, demo video, or business verification requirements are stated.",
+      "quote": "It is **highly recommended** you create a workspace for the purpose of managing the OAuth2 Application, as each admin user will have access.",
+      "sourceUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "sourceTitle": "OAuth 2.0 authentication",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:24.000Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "9962a7_scopes",
+      "slot": "scopes",
+      "value": "Comma-separated scopes: read (default, always present), write, issues:create, comments:create, timeSchedule:write, admin (full access to admin-level endpoints, requested only if absolutely needed). No sensitive vs restricted classification is stated.",
+      "quote": "Comma separated list of scopes: * `read` - (Default) Read access for the user’s account. This scope will always be present. * `write` - Write access for the user’s account. If your application only needs to create comments, use a more targeted scope * `issues:create` - Allows creating and updating issues, and creating their attachments * `comments:create` - Allows creating new issue comments * `timeSchedule:write` - Allows creating and modifying time schedules * `admin` - Full access to admin level endpoints. You should never ask for this permission unless it’s absolutely needed",
+      "sourceUrl": "https://linear.app/developers/oauth-2-0-authentication",
+      "sourceTitle": "OAuth 2.0 authentication",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:24.000Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a576fa_tokenModel",
+      "slot": "tokenModel",
+      "value": "The app supports authorization_code and client_credentials grant types, and authorization_code is always required; no access-token lifetime, refresh token, or rotation details are stated.",
+      "quote": "#### `oauth.grant_types`[...]\n\nThe OAuth grant types the app supports. Repeat this parameter to provide multiple values.\n\n*   Allowed values: `authorization_code`, `client_credentials`\n*   Repeatable: yes\n*   `authorization_code` is always required",
+      "sourceUrl": "https://linear.app/developers/oauth-app-manifests",
+      "sourceTitle": "OAuth application manifests",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:12:27.871Z",
+      "match": "loose",
+      "status": "documented",
+      "confidence": 0.8600000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "reviewRequired",
+      "value": "No review required",
+      "basis": "No app review, verification, or approval process appears in the 4 official sources read. This is inferred from absence, not from a policy statement.",
+      "confidence": 0.62
+    },
+    {
+      "slot": "unverifiedUserExperience",
+      "value": "No unverified state",
+      "basis": "Because no review or verification step appears in the sources, there is no documented period in which the app is treated as unverified.",
+      "confidence": 0.5
+    },
+    {
+      "slot": "setupTime",
+      "value": "~5-10 minutes",
+      "basis": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://linear.app/developers/oauth-2-0-authentication",
+      "title": "OAuth 2.0 authentication",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:12:24.000Z"
+    },
+    {
+      "url": "https://linear.app/developers/oauth-app-manifests",
+      "title": "OAuth application manifests",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:12:27.871Z"
+    },
+    {
+      "url": "https://linear.app/changelog/2020-12-08-series-a-roadmap-oauth2-and-big-sur-logo",
+      "title": "Series A, Roadmap, OAuth2 and Big Sur logo – Changelog",
+      "tier": 2,
+      "fetchedAt": "2026-10-28T12:12:26.626Z"
+    },
+    {
+      "url": "https://linear.app/developers/oauth-actor-authorization",
+      "title": "OAuth actor authorization",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:12:29.912Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 4,
+    "pagesUsed": 4,
+    "quotesVerified": 12,
+    "quotesRejected": 3,
+    "claims": 8,
+    "conflicts": 1,
+    "byStatus": {
+      "tested": 0,
+      "documented": 8,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:13:56.854Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 101079
+}

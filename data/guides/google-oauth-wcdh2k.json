@@ -1,0 +1,235 @@
+{
+  "slug": "google-oauth-wcdh2k",
+  "header": {
+    "appName": "Google",
+    "domain": "google.com",
+    "tagline": "Google OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "https://console.developers.google.com/auth/clients",
+    "setupTime": "~30-60 minutes",
+    "reviewRequired": "yes",
+    "reviewTime": "Brand Verification: 2-3 Business days; Sensitive Scope Verification: 10 Business days; Restricted Scope Verification: 6 weeks (estimates not guaranteed, varies with developer responsiveness)",
+    "totalTime": "~30-60 minutes setup + up to 6 weeks review",
+    "canIndividualFinish": "yes",
+    "difficulty": {
+      "setup": 2,
+      "gate": 5,
+      "time": 4,
+      "overall": 5
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "high",
+    "setupNote": "Estimated from these prerequisite artifacts: privacy, policy, domain, verification, security. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nIf your AI agent connects a user’s Google account so it can call Google APIs on that user’s behalf, you need your own OAuth client: your app must have client credentials, a redirect URI where Google returns the authorization code, and a registered consent screen.\n\nIf you only need to read public data without user identity, or you are using a pre-built provider connection, you may not need your own app. That distinction is not documented here.\n\n## Before you start\n\nYou can do this as an individual. The documented prerequisites are: a Google Account, access to the Internet, and a web browser. No business or organization requirement is stated.\n\nPlan for these before verification:\n\n- A public, web-accessible disclosure describing how your app uses Google user data, consistent with Google policies. This can be an in-product disclosure on the application homepage or a public FAQ.\n- Brand verification readiness: logo, display name, URLs, and domain ownership.\n- If you need restricted scopes, an additional security assessment by a CASA-authorized assessor, paid directly by you to the assessor. Google itself charges no fees.\n\nEstimated setup time is about 30–60 minutes from the documented steps, but that is a heuristic, not a published duration. It is based on the prerequisite artifacts above.\n\n## Step-by-step setup\n\nThe documented entry point is the [Google Cloud Console Clients page](https://console.developers.google.com/auth/clients). There you click **Create Client**.\n\nThe claims do not document the full click path after that. The steps below are the standard OAuth flow; treat field names and button labels beyond “Create Client” as not documented.\n\n1. Create an OAuth client in the Google Cloud Console.\n2. Register a redirect URI. For local testing, URIs that refer to the local machine, such as `http://localhost:8080`, are permitted.\n3. Configure the OAuth consent screen. Sensitive scopes will show a sensitive indicator on that screen.\n4. Add the scopes your app needs.\n5. Exchange the authorization code for tokens. If you set `access_type=offline`, the token response includes both an access token and a refresh token on the first exchange.\n6. Test. If you see **unverified app** on screen, you must submit a verification request to remove it.\n\n## Scopes\n\nGoogle scopes are modeled as sensitive or non-sensitive. Sensitive scopes require Google review and have a sensitive indicator on the OAuth consent screen configuration page.\n\nMany scopes overlap. Where possible, choose a scope that is not sensitive; that avoids the review gate. If you request sensitive or restricted scopes, a public application must complete a verification process.\n\nDo not request broad scopes without a documented need. Requesting the broad `https://mail.google.com/` scope just for SMTP sending violates the minimum scope policy and can block verification.\n\n## Approval and review\n\nSensitive scopes require review by Google. A public application using scopes that permit access to certain user data must complete a verification process.\n\nPublished review timelines are not guarantees and vary with developer responsiveness:\n\n- Brand Verification: 2–3 business days.\n- Sensitive Scope Verification: 10 business days.\n- Restricted Scope Verification: 6 weeks.\n\nRestricted scopes additionally require a security assessment by a CASA-authorized assessor, paid directly by you to the assessor. Google charges no fees for this process.\n\nRejection has a real consequence: if the app is rejected for sensitive or restricted scopes, users’ access to those unapproved scopes via OAuth no longer works.\n\n## Troubleshooting\n\nCommon blockers:\n\n- **Unverified app screen.** If users see this, submit a verification request to remove it.\n- **Scope policy violation.** Requesting broad scopes without a real need, such as `https://mail.google.com/` for SMTP sending, violates the minimum scope policy and blocks verification.\n- **Rejection.** After rejection, users lose OAuth access to the unapproved sensitive or restricted scopes.\n\nNo rollback or appeal process is documented in the claims.\n\n## Rollback\n\nNo rollback procedure is documented. The only documented post-rejection behavior is that access to the unapproved sensitive or restricted scopes stops working.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. The sources reviewed say app review or verification is required. Documented timelines: Brand Verification: 2-3 Business days; Sensitive Scope Verification: 10 Business days; Restricted Scope Verification: 6 weeks (estimates not guaranteed, varies with developer responsiveness). Submitting the app and answering reviewer questions are developer tasks.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- The exact console screens and field names after **Create Client**.\n- Whether a non-sensitive scope can avoid verification in every case.\n- Exact assessor fees for the restricted scope security assessment.\n- The procedure for re-requesting verification after a rejection.\n- Google’s internal review wait beyond the published estimates.",
+  "claims": [
+    {
+      "id": "1ceca6_appCreationUrl",
+      "slot": "appCreationUrl",
+      "value": "https://console.developers.google.com/auth/clients",
+      "quote": "1.   Go to the [Clients page](https://console.developers.google.com/auth/clients).\n2.   Click **Create Client**.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/web-server",
+      "sourceTitle": "Using OAuth 2.0 for Web Server Applications Stay organized with collections  Save and categorize content based on your preferences.",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:32.387Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "1ceca6_canIndividualFinish",
+      "slot": "canIndividualFinish",
+      "value": "Yes — only a Google Account, access to the Internet, and a web browser are needed; no business or organization requirement is stated",
+      "quote": "To run any of the code samples in this document, you'll need a Google Account, access to the Internet, and a web browser.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/web-server",
+      "sourceTitle": "Using OAuth 2.0 for Web Server Applications Stay organized with collections  Save and categorize content based on your preferences.",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:32.387Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "49bd38_consoleName",
+      "slot": "consoleName",
+      "value": "Google Cloud Console",
+      "quote": "Sensitive scopes require review by Google and have a sensitive indicator on the Google Cloud Console's OAuth consent screen configuration page.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/scopes",
+      "sourceTitle": "OAuth 2.0 Scopes for Google APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:34.493Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "1ceca6_redirectRules",
+      "slot": "redirectRules",
+      "value": "localhost exemption: URIs referring to the local machine, such as http://localhost:8080, are permitted for testing",
+      "quote": "For testing, you can specify URIs that refer to the local machine, such as `http://localhost:8080`.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/web-server",
+      "sourceTitle": "Using OAuth 2.0 for Web Server Applications Stay organized with collections  Save and categorize content based on your preferences.",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:32.387Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "7a470d_rejectionCauses",
+      "slot": "rejectionCauses",
+      "value": "If rejected for sensitive or restricted scopes, users' access to the unapproved sensitive or restricted scopes via OAuth no longer works; requesting broad https://mail.google.com/ scope just for SMTP sending violates the minimum scope policy and blocks verification.",
+      "quote": "If the app has been rejected for sensitive or restricted scopes, users’ access to the unapproved sensitive or restricted scopes in the app via OAuth will no longer work.",
+      "sourceUrl": "https://support.google.com/cloud/answer/13463817",
+      "sourceTitle": "Frequently Asked Questions",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:03:54.528Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "7a470d_requirements",
+      "slot": "requirements",
+      "value": "Public web-accessible disclosure such as a privacy policy covering how the app uses Google user data, brand verification of logo/display name/URLs/domain ownership, and an additional security assessment by a CASA authorized assessor for restricted scopes, paid directly by the developer to the assessor (Google charges no fees).",
+      "quote": "Describing how your app uses Google user data consistent with Google policies through a public web-accessible disclosure (such as an in-product disclosure on the application homepage, or public FAQ) is enough for going through the verification process.",
+      "sourceUrl": "https://support.google.com/cloud/answer/13463817",
+      "sourceTitle": "Frequently Asked Questions",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:03:54.528Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "49bd38_reviewRequired",
+      "slot": "reviewRequired",
+      "value": "Yes — sensitive scopes require review by Google, and a public application using scopes that permit access to certain user data must complete a verification process.",
+      "quote": "If your public application uses scopes that permit access to certain user data, it must complete a verification process.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/scopes",
+      "sourceTitle": "OAuth 2.0 Scopes for Google APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:34.493Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "7a470d_reviewTimeline",
+      "slot": "reviewTimeline",
+      "value": "Brand Verification: 2-3 Business days; Sensitive Scope Verification: 10 Business days; Restricted Scope Verification: 6 weeks (estimates not guaranteed, varies with developer responsiveness)",
+      "quote": "| Brand Verification | Ensure that an app accurately represents its identity and intent per the[Google API policy](https://developers.google.com/terms/api-services-user-data-policy) by verifying the logo, display name, URLs, domain ownership, etc. | 2-3 Business days |",
+      "sourceUrl": "https://support.google.com/cloud/answer/13463817",
+      "sourceTitle": "Frequently Asked Questions",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:03:54.528Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "49bd38_scopes",
+      "slot": "scopes",
+      "value": "Sensitive vs non-sensitive scope model: sensitive scopes require Google review and carry a sensitive indicator on the OAuth consent screen configuration page; many scopes overlap, so it's best to use a scope that isn't sensitive.",
+      "quote": "This document lists the OAuth 2.0 scopes that you might need to request to access Google APIs, depending on the level of access you need. Sensitive scopes require review by Google and have a sensitive indicator on the Google Cloud Console's OAuth consent screen configuration page.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/scopes",
+      "sourceTitle": "OAuth 2.0 Scopes for Google APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:34.493Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "1ceca6_tokenModel",
+      "slot": "tokenModel",
+      "value": "Exchanging an authorization code for tokens returns both an access token and a refresh token (when access_type=offline is set)",
+      "quote": "This value instructs the Google authorization server to return a refresh token _and_ an access token the first time that your application exchanges an authorization code for tokens.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/web-server",
+      "sourceTitle": "Using OAuth 2.0 for Web Server Applications Stay organized with collections  Save and categorize content based on your preferences.",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:32.387Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "49bd38_unverifiedUserExperience",
+      "slot": "unverifiedUserExperience",
+      "value": "End users see 'unverified app' on the screen when testing the application; a verification request must be submitted to remove it.",
+      "quote": "If you see unverified app on the screen when testing your application, you must submit a verification request to remove it.",
+      "sourceUrl": "https://developers.google.com/identity/protocols/oauth2/scopes",
+      "sourceTitle": "OAuth 2.0 Scopes for Google APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:59:34.493Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "setupTime",
+      "value": "~30-60 minutes",
+      "basis": "Estimated from these prerequisite artifacts: privacy, policy, domain, verification, security. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://developers.google.com/identity/protocols/oauth2/scopes",
+      "title": "OAuth 2.0 Scopes for Google APIs",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:59:34.493Z"
+    },
+    {
+      "url": "https://developers.google.com/identity/protocols/oauth2",
+      "title": "Using OAuth 2.0 to Access Google APIs Stay organized with collections  Save and categorize content based on your preferences.",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:59:29.795Z"
+    },
+    {
+      "url": "https://developers.google.com/identity/protocols/oauth2/web-server",
+      "title": "Using OAuth 2.0 for Web Server Applications Stay organized with collections  Save and categorize content based on your preferences.",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:59:32.387Z"
+    },
+    {
+      "url": "https://support.google.com/cloud/answer/9110914",
+      "title": "OAuth App Verification Help Center",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:59:33.765Z"
+    },
+    {
+      "url": "https://support.google.com/cloud/answer/13463817",
+      "title": "Frequently Asked Questions",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:03:54.528Z"
+    },
+    {
+      "url": "https://support.google.com/cloud/answer/13464321",
+      "title": "Verification requirements",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:03:54.587Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 6,
+    "pagesUsed": 6,
+    "quotesVerified": 35,
+    "quotesRejected": 3,
+    "claims": 11,
+    "conflicts": 8,
+    "byStatus": {
+      "tested": 0,
+      "documented": 11,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:04:49.978Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 64529
+}

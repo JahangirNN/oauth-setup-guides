@@ -1,0 +1,183 @@
+{
+  "slug": "x-oauth-hd8e0q",
+  "header": {
+    "appName": "X",
+    "domain": "x.com",
+    "tagline": "X OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "https://developer.x.com/en/portal/petition/essential/basic-info",
+    "setupTime": "~5-10 minutes",
+    "reviewRequired": "no",
+    "reviewTime": "No review required",
+    "totalTime": "~5-10 minutes",
+    "canIndividualFinish": "uncertain",
+    "difficulty": {
+      "setup": 1,
+      "gate": 1,
+      "time": 1,
+      "overall": 1
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "medium",
+    "reviewNote": "No app review, verification, or approval process appears in the 6 official sources read. This is inferred from absence, not from a policy statement.",
+    "setupNote": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nIf your AI agent acts on behalf of each user’s X account, it needs an X app registered in the Developer Console to run OAuth 2.0. A single shared X account may not require per-user OAuth, but the documented flow described here is for end-user authorization.\n\n## Before you start\n\n- You need a developer account with app credentials.\n- Decide which fine-grained scopes your agent actually needs.\n- If your agent must remain authorized for more than two hours, plan to request `offline.access`; it controls whether a refresh token is issued.\n- Decide the exact callback URL you will send in `redirect_uri` before configuring the app.\n\n## Step-by-step setup\n\n1. Create your app through the [X Developer Console](https://developer.x.com/en/portal/petition/essential/basic-info).\n2. In the app’s settings, define the Callback URLs. The `redirect_uri` used during OAuth must correspond to one of those URLs, and X requires exact match validation.\n3. Enable OAuth 2.0 in the app’s authentication settings from the Developer Console.\n4. Select the fine-grained scopes your agent needs.\n5. Implement the Authorization Code Flow with PKCE using the app’s client credentials and registered callback URL.\n\nThese are self-serve steps with no prerequisite artifacts documented. Estimated setup time is about 5–10 minutes from the documented steps.\n\n## Scopes\n\nX supports fine-grained scopes, including:\n\n- `tweet.read`, `tweet.write`, `tweet.moderate.write`\n- `users.email`, `users.read`\n- `follows.read`, `follows.write`\n- `offline.access`\n- `space.read`, `space.read`\n- `mute.read`, `mute.write`\n- `like.read`, `like.write`\n- `list.read`, `list.write`\n- `block.read`, `block.write`\n- `bookmark.read`, `bookmark.write`\n- `dm.read`, `dm.write`\n- `media.write`\n- `broadcast.read`, `broadcast.write`\n\nThe `offline.access` scope controls whether a refresh token is issued. Without it, access tokens issued through the Authorization Code Flow with PKCE are valid for two hours.\n\n## Approval and review\n\nNo app review, verification, or approval process is documented in the six official sources reviewed. This appears to be self-serve. Because no verification step is documented, there is no documented period in which the app is treated as unverified.\n\n## Troubleshooting\n\n- If authorization fails because of the callback, verify that the `redirect_uri` exactly matches one of the Callback URLs defined in the app’s settings.\n- The authorization code expires 30 seconds after receipt, so exchange it promptly.\n- Access tokens are valid for two hours unless you requested `offline.access`; after two hours the user will need to reauthorize unless a refresh token was issued.\n\n## Rollback\n\nNo rollback or app-deletion procedure is documented in the supplied sources. If you need to remove an app or revoke access, that process is not covered here.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. No provider review or verification step appears in the sources reviewed; confirm that with the provider before launch. The remaining work is console setup and credential handling. The sources reviewed do not clearly establish whether an individual can complete every step; verify account eligibility before starting.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- Whether any specific account type or organization status is required to create the app.\n- Whether fees or paid-plan restrictions apply.\n- Whether collaboration, ownership transfer, or environment limitations exist.\n- How to delete an app or remove existing users’ access.\n- Whether any review process exists outside the six documented sources.",
+  "claims": [
+    {
+      "id": "31f310_appCreationUrl",
+      "slot": "appCreationUrl",
+      "value": "https://developer.x.com/en/portal/petition/essential/basic-info",
+      "quote": "[Developer Console](https://developer.x.com/en/portal/petition/essential/basic-info)",
+      "sourceUrl": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "sourceTitle": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "31f310_consoleName",
+      "slot": "consoleName",
+      "value": "Developer Console",
+      "quote": "To enable OAuth 2.0 in your App, you must enable it in your App’s authentication settings found in the App settings section of the Developer Console.",
+      "sourceUrl": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "sourceTitle": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "31f310_redirectRules",
+      "slot": "redirectRules",
+      "value": "Redirect URI must have exact match validation and must correspond to one of the Callback URLs defined in the App's settings.",
+      "quote": "redirect_uri | Your callback URL. This value must correspond to one of the Callback URLs defined in your App’s settings. For OAuth 2.0, you will need to have[exact match validation](https://datatracker.ietf.org/doc/html/rfc6749#section-10.6)for your callback URL.",
+      "sourceUrl": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "sourceTitle": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a6a7a6_requirements",
+      "slot": "requirements",
+      "value": "A developer account with app credentials",
+      "quote": "This guide walks you through making your first X API request. You’ll need a [developer account with app credentials](https://docs.x.com/x-api/getting-started/getting-access) before starting.",
+      "sourceUrl": "https://docs.x.com/make-your-first-request",
+      "sourceTitle": "Make Your First Request",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:21:05.074Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "31f310_scopes",
+      "slot": "scopes",
+      "value": "Fine-grained scopes: tweet.read, tweet.write, tweet.moderate.write, users.email, users.read, follows.read, follows.write, offline.access, space.read, mute.read, mute.write, like.read, like.write, list.read, list.write, block.read, block.write, bookmark.read, bookmark.write, dm.read, dm.write, media.write, broadcast.read, broadcast.write. The offline.access scope controls whether a refresh token is issued.",
+      "quote": "Scopes allow you to set granular access for your App so that your App only has the permissions that it needs.",
+      "sourceUrl": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "sourceTitle": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "31f310_tokenModel",
+      "slot": "tokenModel",
+      "value": "Access token from Authorization Code Flow with PKCE is valid for two hours unless the offline.access scope is used, which causes a refresh token to be issued; the authorization code (auth_code) expires 30 seconds after receipt.",
+      "quote": "By default, the access token you create through the Authorization Code Flow with PKCE will only stay valid for two hours unless you’ve used the `offline.access` scope.",
+      "sourceUrl": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "sourceTitle": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "reviewRequired",
+      "value": "No review required",
+      "basis": "No app review, verification, or approval process appears in the 6 official sources read. This is inferred from absence, not from a policy statement.",
+      "confidence": 0.62
+    },
+    {
+      "slot": "unverifiedUserExperience",
+      "value": "No unverified state",
+      "basis": "Because no review or verification step appears in the sources, there is no documented period in which the app is treated as unverified.",
+      "confidence": 0.5
+    },
+    {
+      "slot": "setupTime",
+      "value": "~5-10 minutes",
+      "basis": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/authorization-code",
+      "title": "OAuth 2.0 Authorization Code Flow with PKCE",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.524Z"
+    },
+    {
+      "url": "https://docs.x.com/fundamentals/authentication/overview",
+      "title": "Authentication",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:21:02.916Z"
+    },
+    {
+      "url": "https://docs.x.com/x-api/getting-started/about-x-api",
+      "title": "About the X API",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:14:26.070Z"
+    },
+    {
+      "url": "https://docs.x.com/make-your-first-request",
+      "title": "Make Your First Request",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:21:05.074Z"
+    },
+    {
+      "url": "https://docs.x.com/fundamentals/authentication/oauth-2-0/bearer-tokens",
+      "title": "Using and generating an app-only Bearer Token",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:21:03.046Z"
+    },
+    {
+      "url": "https://docs.x.com/fundamentals/authentication/oauth-2-0/overview",
+      "title": "OAuth 2.0",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:21:14.804Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 6,
+    "pagesUsed": 6,
+    "quotesVerified": 20,
+    "quotesRejected": 4,
+    "claims": 6,
+    "conflicts": 1,
+    "byStatus": {
+      "tested": 0,
+      "documented": 6,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:22:24.933Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 89365
+}

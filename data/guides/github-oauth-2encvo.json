@@ -1,0 +1,196 @@
+{
+  "slug": "github-oauth-2encvo",
+  "header": {
+    "appName": "GitHub",
+    "domain": "github.com",
+    "tagline": "GitHub OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "https://github.com/settings/applications/new",
+    "setupTime": "~5-10 minutes",
+    "reviewRequired": "no",
+    "reviewTime": "No review required",
+    "totalTime": "~5-10 minutes",
+    "canIndividualFinish": "yes",
+    "difficulty": {
+      "setup": 1,
+      "gate": 1,
+      "time": 1,
+      "overall": 1
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "medium",
+    "reviewNote": "No app review, verification, or approval process appears in the 6 official sources read. This is inferred from absence, not from a policy statement.",
+    "setupNote": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nIf your AI agent’s users must connect their GitHub account, this guide covers registering your own GitHub OAuth app. Whether any alternative setup path exists for this flow is not documented. An individual can create and register an OAuth app under a personal account or under any organization they administer.\n\n## Before you start\n\n- You need a GitHub account. To register under an organization, you need administrative access to that organization.\n- Decide on an application name, a homepage URL, and an authorization callback URL.\n- The application description is optional, but users will see it if you provide one.\n- You can enter up to 10 callback URLs; additional URLs are added with **Add callback URL**.\n\n## Step-by-step setup\n\n1. Go to the OAuth app registration page: `https://github.com/settings/applications/new`.\n2. The documented setup path lives under **Developer settings** in the left sidebar.\n3. Enter the required fields: application name, homepage URL, and authorization callback URL.\n4. Optionally enter an application description.\n5. Add callback URLs as needed, up to the documented limit of 10, using **Add callback URL**.\n\nAfter registration, every OAuth app is assigned a unique Client ID and Client Secret. Treat the secret as confidential.\n\n## Scopes\n\nScopes limit OAuth token access. They do not grant any additional permission beyond what the user already has. The documented granular scopes include:\n\n- `repo`\n- `public_repo`\n- `user`, `read:user`, `user:email`, `user:follow`\n- `org`, `admin:org`, `write:org`, `read:org`\n- `admin:repo_hook`\n- `gist`\n- `workflow`\n- `codespace`\n- `packages`\n- `delete_repo`\n- `notifications`\n- `project`\n- `offline_access`\n\nThe `offline_access` scope requests an expiring access token plus a refresh token, even if the OAuth app is not configured to use expiring tokens. Use it to test and gradually roll out support for expiring tokens. The `X-OAuth-Scopes` and `X-Accepted-OAuth-Scopes` response headers reveal a token’s granted scopes.\n\n## Approval and review\n\nNo app review, verification, or approval process is documented in the sources reviewed. This appears to be self-serve. Because no review or verification step appears, there is no documented period in which the app is treated as unverified. Setup time is estimated at about 5–10 minutes from the documented steps; the provider does not publish a duration.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. No provider review or verification step appears in the sources reviewed; confirm that with the provider before launch. The remaining work is console setup and credential handling.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- The provider does not publish a setup duration; the 5–10 minute figure is an estimate based on a self-serve form with no documented prerequisite artifacts.\n- No review, verification, or approval step is documented, so this guide cannot say whether any internal review occurs before the app becomes usable.\n- The experience of an unverified or pending app is not documented.\n- No troubleshooting, error, or rollback guidance is documented for this flow.\n- Anything outside the registration fields and scopes listed above is not covered.",
+  "claims": [
+    {
+      "id": "fc3224_appCreationUrl",
+      "slot": "appCreationUrl",
+      "value": "https://github.com/settings/applications/new",
+      "quote": "First, you'll need to [register your application](https://github.com/settings/applications/new). Every registered OAuth app is assigned a unique Client ID and Client Secret.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app",
+      "sourceTitle": "Authenticating to the REST API with an OAuth app",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:33.162Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "996a44_canIndividualFinish",
+      "slot": "canIndividualFinish",
+      "value": "Yes — an individual can create and register an OAuth app under their personal account (or under any organization they administer).",
+      "quote": "You can create and register an OAuth app under your personal account or under any organization you have administrative access to.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "sourceTitle": "Creating an OAuth app",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.057Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "996a44_consoleName",
+      "slot": "consoleName",
+      "value": "Developer settings",
+      "quote": "2.   In the left sidebar, click **Developer settings**.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "sourceTitle": "Creating an OAuth app",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.057Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "996a44_redirectRules",
+      "slot": "redirectRules",
+      "value": "Up to 10 authorization callback URLs are allowed; additional URLs are added via \"Add callback URL\".",
+      "quote": "You can enter up to 10 callback URLs. To add additional callback URLs, click **Add callback URL**.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "sourceTitle": "Creating an OAuth app",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.057Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "996a44_requirements",
+      "slot": "requirements",
+      "value": "Requires an application name, homepage URL, and authorization callback URL; application description is optional.",
+      "quote": "6.   In \"Homepage URL\", type the full URL to your app's website.\n\n7.   Optionally, in \"Application description\", type a description of your app that users will see.\n\n8.   In \"Authorization callback URL\", type the callback URL of your app.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "sourceTitle": "Creating an OAuth app",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.057Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "f0d89c_scopes",
+      "slot": "scopes",
+      "value": "Scopes limit OAuth token access and grant no permission beyond the user's own; available granular scopes include repo, public_repo, user/read:user/user:email/user:follow, org admin/write/read, admin:repo_hook, gist, workflow, codespace, packages, delete_repo, notifications, project, and offline_access.",
+      "quote": "Scopes let you specify exactly what type of access you need. Scopes _limit_ access for OAuth tokens. They do not grant any additional permission beyond that which the user already has.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps",
+      "sourceTitle": "Scopes for OAuth apps",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.185Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "f0d89c_tokenModel",
+      "slot": "tokenModel",
+      "value": "The offline_access scope requests an expiring access token plus a refresh token; OAuth apps can be configured to use expiring access tokens, and X-OAuth-Scopes / X-Accepted-OAuth-Scopes response headers reveal a token's granted scopes.",
+      "quote": "Requests an expiring access token and a refresh token, even if your OAuth app is not configured to use expiring tokens. Use this scope to test and gradually roll out support for expiring tokens.",
+      "sourceUrl": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps",
+      "sourceTitle": "Scopes for OAuth apps",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.185Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "reviewRequired",
+      "value": "No review required",
+      "basis": "No app review, verification, or approval process appears in the 6 official sources read. This is inferred from absence, not from a policy statement.",
+      "confidence": 0.62
+    },
+    {
+      "slot": "unverifiedUserExperience",
+      "value": "No unverified state",
+      "basis": "Because no review or verification step appears in the sources, there is no documented period in which the app is treated as unverified.",
+      "confidence": 0.5
+    },
+    {
+      "slot": "setupTime",
+      "value": "~5-10 minutes",
+      "basis": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps",
+      "title": "Scopes for OAuth apps",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.185Z"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app",
+      "title": "Creating an OAuth app",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.057Z"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/best-practices-for-creating-an-oauth-app",
+      "title": "Best practices for creating an OAuth app",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:43:34.142Z"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/differences-between-github-apps-and-oauth-apps",
+      "title": "Differences between GitHub Apps and OAuth apps",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:43:32.820Z"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app",
+      "title": "Authenticating to the REST API with an OAuth app",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T11:43:33.162Z"
+    },
+    {
+      "url": "https://docs.github.com/en/apps/github-authentication-discovery-endpoints",
+      "title": "GitHub authentication discovery endpoints",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:19:33.575Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 6,
+    "pagesUsed": 6,
+    "quotesVerified": 24,
+    "quotesRejected": 1,
+    "claims": 7,
+    "conflicts": 0,
+    "byStatus": {
+      "tested": 0,
+      "documented": 7,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:20:50.275Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 85813
+}

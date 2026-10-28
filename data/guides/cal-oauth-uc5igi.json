@@ -1,0 +1,145 @@
+{
+  "slug": "cal-oauth-uc5igi",
+  "header": {
+    "appName": "Cal.com",
+    "domain": "cal.com",
+    "tagline": "Cal.com OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "",
+    "setupTime": "~5-10 minutes",
+    "reviewRequired": "yes",
+    "reviewTime": "Not published",
+    "totalTime": "~5-10 minutes setup + an unpublished review wait",
+    "canIndividualFinish": "uncertain",
+    "difficulty": {
+      "setup": 1,
+      "gate": 4,
+      "time": 5,
+      "overall": 5
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "medium",
+    "setupNote": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nIf you want your integration listed as an official Cal partner/app in the Cal App Store, yes: Cal documents that you must create and get a verified OAuth client.\n\nIf you only need your AI agent’s users to connect their Cal accounts, the supplied docs do not state a separate non-store threshold. Cal’s platform dashboard is where OAuth credentials live after an OAuth client is created, so an OAuth client is still the documented credential object.\n\n## Before you start\n\nThe documented create-client flow is API-first, not a button flow.\n\n- You need Cal API authentication formatted as `Bearer <token>`, where `<token>` is an API key prefixed with `cal_`. The docs supplied here do not say how to obtain that API key.\n- The client creation body must include at least:\n  - `name`\n  - `redirectUris`\n  - `permissions`\n- For generic OAuth: `redirectUris` is the callback URL Cal will send authorization results to; choose it before creating the client because it is a creation-time field.\n- Decide your permission scope before creation. Do not request more than the agent needs; Cal supports `[\"*\"]` to grant all permissions, but that is documented as a capability, not a recommendation.\n\nThis appears to be self-serve: no prerequisite artifacts are documented. The setup itself is estimated at about 5–10 minutes from the documented steps, but that is a heuristic; Cal does not publish a setup duration.\n\n## Step-by-step setup\n\n1. Create the OAuth client through Cal’s platform API using the Bearer + `cal_`-prefixed API key.\n2. In the request body, include `name`, `redirectUris`, and `permissions`.\n3. After the client exists, access its OAuth credentials in Cal’s platform dashboard at `https://app.cal.com/settings/platform`.\n\nThe supplied docs do not document a web form sequence, button labels, or where the `cal_` API key is created, so those details are omitted rather than guessed.\n\n## Scopes\n\nCal documents these permission keys for the client creation API:\n\n- `EVENT_TYPE_READ`\n- `EVENT_TYPE_WRITE`\n- `BOOKING_READ`\n- `BOOKING_WRITE`\n- `SCHEDULE_READ`\n- `SCHEDULE_WRITE`\n- `APPS_READ`\n- `APPS_WRITE`\n- `PROFILE_READ`\n- `PROFILE_WRITE`\n\n`[*]` grants all permissions. For an AI agent, map the requested scope to the minimum resources the agent actually reads or writes; `[*]` is documented as valid but should be treated as a broad grant.\n\n## Approval and review\n\nReview is required for the documented listing path: to be listed as an official partner and App Store app, you must create and get a verified OAuth client.\n\nNo review process is documented in the supplied claims. Cal does not publish a review duration here, so do not estimate a calendar date from setup time. Plan for roughly 5–10 minutes of self-serve setup plus an unpublished review wait. Whether one individual can finish the whole process is uncertain from these docs; the verification step is the documented gate.\n\n## Troubleshooting\n\nThe main documented operational requirement is token refresh.\n\n- Cal access tokens expire.\n- You must build a `refreshUrl` endpoint to which Cal Atoms send expired access tokens and receive new ones in return.\n\nIf integrations fail after initial authorization, verify the `refreshUrl` path is live before launch. No other Cal-specific failure modes are documented in the supplied claims.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. The sources reviewed say app review or verification is required, but no timeline is published. Submitting the app and answering reviewer questions are developer tasks. The sources reviewed do not clearly establish whether an individual can complete every step; verify account eligibility before starting.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- How to obtain the `cal_`-prefixed API key.\n- The current App Store review criteria beyond needing a verified OAuth client.\n- Review duration or expected calendar wait.\n- Whether non-App-Store user connections require verified-client status.\n- Rollback or deletion steps for an OAuth client.\n- Fees, if any, for app-store listing or verification.\n- UI labels inside the platform dashboard beyond the stated settings/platform location.",
+  "claims": [
+    {
+      "id": "a35fc0_consoleName",
+      "slot": "consoleName",
+      "value": "platform dashboard",
+      "quote": "OAuth credentials can be accessed in the platform dashboard [https://app.cal.com/settings/platform](https://app.cal.com/settings/platform) after you have created an OAuth client.",
+      "sourceUrl": "https://cal.com/docs",
+      "sourceTitle": "Introduction to API v2",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:25:38.712Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "38030a_requirements",
+      "slot": "requirements",
+      "value": "Authorization header with Bearer token that is an API key prefixed with cal_; body requires name, redirectUris, permissions",
+      "quote": "value must be `Bearer <token>` where `<token>` is api key prefixed with cal_",
+      "sourceUrl": "https://cal.com/docs/api-reference/v2/deprecated:-platform-oauth-clients/create-an-oauth-client",
+      "sourceTitle": "Create an OAuth client",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:25:47.129Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "a35fc0_reviewRequired",
+      "slot": "reviewRequired",
+      "value": "Yes - Cal.com requires creating and getting a verified OAuth client",
+      "quote": "In order to be listed as an official partner and App in our App Store: cal.com/apps you need to create and get a verified OAuth client.",
+      "sourceUrl": "https://cal.com/docs",
+      "sourceTitle": "Introduction to API v2",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:25:38.712Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "38030a_scopes",
+      "slot": "scopes",
+      "value": "permissions enum list: EVENT_TYPE_READ, EVENT_TYPE_WRITE, BOOKING_READ, BOOKING_WRITE, SCHEDULE_READ, SCHEDULE_WRITE, APPS_READ, APPS_WRITE, PROFILE_READ, PROFILE_WRITE; [\"*\"] grants all permissions",
+      "quote": "Array of permission keys like [\"BOOKING_READ\", \"BOOKING_WRITE\"]. Use [\"*\"] to grant all permissions.\n\nAvailable options:\n\n`EVENT_TYPE_READ`,\n\n`EVENT_TYPE_WRITE`,\n\n`BOOKING_READ`,\n\n`BOOKING_WRITE`,\n\n`SCHEDULE_READ`,\n\n`SCHEDULE_WRITE`,\n\n`APPS_READ`,\n\n`APPS_WRITE`,\n\n`PROFILE_READ`,\n\n`PROFILE_WRITE`,\n\n`*`",
+      "sourceUrl": "https://cal.com/docs/api-reference/v2/deprecated:-platform-oauth-clients/create-an-oauth-client",
+      "sourceTitle": "Create an OAuth client",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:25:47.129Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "241a36_tokenModel",
+      "slot": "tokenModel",
+      "value": "Access tokens expire; the developer must build a refreshUrl endpoint to which the Cal Atoms send expired access tokens and receive new ones in return.",
+      "quote": "refreshUrl` (URL of endpoint you have to build that to which atoms will send expired access tokens and receive new one in return.",
+      "sourceUrl": "https://cal.com/docs/atoms/cal-oauth-provider",
+      "sourceTitle": "Cal OAuth Provider",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:25:38.259Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "setupTime",
+      "value": "~5-10 minutes",
+      "basis": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://cal.com/docs/atoms/cal-oauth-provider",
+      "title": "Cal OAuth Provider",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:25:38.259Z"
+    },
+    {
+      "url": "https://cal.com/docs",
+      "title": "Introduction to API v2",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:25:38.712Z"
+    },
+    {
+      "url": "https://docs.cal.com/",
+      "title": "Introduction to API v2",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:25:50.943Z"
+    },
+    {
+      "url": "https://cal.com/docs/api-reference/v2/deprecated:-platform-oauth-clients/create-an-oauth-client",
+      "title": "Create an OAuth client",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:25:47.129Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 4,
+    "pagesUsed": 4,
+    "quotesVerified": 9,
+    "quotesRejected": 4,
+    "claims": 5,
+    "conflicts": 0,
+    "byStatus": {
+      "tested": 0,
+      "documented": 5,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:33:45.213Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 57161
+}

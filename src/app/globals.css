@@ -1,0 +1,330 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #15171c;
+  --color-ink-soft: #3f4552;
+  --color-muted: #69707d;
+  --color-line: #e5e7ee;
+  --color-subtle: #f7f8fb;
+  --color-accent: #4338ca;
+  --color-accent-strong: #3730a3;
+  --color-accent-soft: #eef1ff;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #ffffff;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: #dfe2ff;
+    color: var(--color-ink);
+  }
+
+  :where(a, button, input, summary):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 0.6rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
+  }
+
+  .btn-primary {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-strong);
+    border-color: var(--color-accent-strong);
+  }
+
+  .btn-secondary {
+    background-color: #ffffff;
+    border-color: var(--color-line);
+    color: var(--color-ink);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-subtle);
+    border-color: #d3d7e1;
+  }
+
+  .btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .prose-guide {
+    color: var(--color-ink-soft);
+    font-size: 1rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .prose-guide > :first-child {
+    margin-top: 0;
+  }
+
+  .prose-guide > * + * {
+    margin-top: 1.15em;
+  }
+
+  .prose-guide h2 {
+    margin-top: 2.5em;
+    color: var(--color-ink);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+  }
+
+  .prose-guide h3 {
+    margin-top: 1.9em;
+    color: var(--color-ink);
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+
+  .prose-guide h4 {
+    margin-top: 1.6em;
+    color: var(--color-ink);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .prose-guide p {
+    margin-top: 1.15em;
+  }
+
+  .prose-guide strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .prose-guide a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    text-decoration-color: #b9bdf0;
+  }
+
+  .prose-guide a:hover {
+    color: var(--color-accent-strong);
+    text-decoration-color: currentColor;
+  }
+
+  .prose-guide .heading-anchor {
+    margin-left: 0.4rem;
+    color: #c3c8d4;
+    font-weight: 400;
+    text-decoration: none;
+  }
+
+  .prose-guide .heading-anchor:hover {
+    color: var(--color-accent);
+    text-decoration: none;
+  }
+
+  .prose-guide ul,
+  .prose-guide ol {
+    padding-left: 1.4rem;
+  }
+
+  .prose-guide ul {
+    list-style: disc;
+  }
+
+  .prose-guide ol {
+    list-style: decimal;
+  }
+
+  .prose-guide li {
+    margin-top: 0.4em;
+    padding-left: 0.15rem;
+  }
+
+  .prose-guide li::marker {
+    color: #9aa1af;
+  }
+
+  .prose-guide li > ul,
+  .prose-guide li > ol {
+    margin-top: 0.4em;
+  }
+
+  .prose-guide hr {
+    margin: 2.5em 0;
+    border: 0;
+    border-top: 1px solid var(--color-line);
+  }
+
+  .prose-guide blockquote {
+    margin: 1.5em 0;
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 0.5rem 0.5rem 0;
+    background-color: var(--color-accent-soft);
+    padding: 0.85rem 1.1rem;
+    color: var(--color-ink-soft);
+  }
+
+  .prose-guide blockquote > :first-child {
+    margin-top: 0;
+  }
+
+  .prose-guide blockquote > * + * {
+    margin-top: 0.6em;
+  }
+
+  .prose-guide code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  .prose-guide :not(pre) > code {
+    border: 1px solid var(--color-line);
+    border-radius: 0.3rem;
+    background-color: #f1f2f7;
+    padding: 0.08em 0.32em;
+    color: #303643;
+    white-space: break-spaces;
+  }
+
+  .prose-guide pre {
+    margin: 1.5em 0;
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    background-color: #14161d;
+    padding: 1rem 1.15rem;
+    color: #e9ebf1;
+    font-size: 0.84rem;
+    line-height: 1.65;
+  }
+
+  .prose-guide pre code {
+    border: 0;
+    background: none;
+    padding: 0;
+    color: inherit;
+    font-size: inherit;
+    white-space: pre;
+  }
+
+  .prose-table-wrap {
+    margin: 1.5em 0;
+    overflow-x: auto;
+    border: 1px solid var(--color-line);
+    border-radius: 0.6rem;
+  }
+
+  .prose-guide table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .prose-guide thead {
+    background-color: var(--color-subtle);
+  }
+
+  .prose-guide th,
+  .prose-guide td {
+    border: 1px solid var(--color-line);
+    padding: 0.55rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .prose-guide th {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+
+  .prose-guide table tr:first-child > * {
+    border-top: 0;
+  }
+
+  .prose-guide table tr > *:first-child {
+    border-left: 0;
+  }
+
+  .prose-guide table tr > *:last-child {
+    border-right: 0;
+  }
+
+  .prose-guide table tr:last-child > * {
+    border-bottom: 0;
+  }
+
+  .prose-guide img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  .prose-guide input[type="checkbox"] {
+    margin-right: 0.45rem;
+    accent-color: var(--color-accent);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fade-in {
+  animation: fade-up 280ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .fade-in {
+    animation: none;
+  }
+}

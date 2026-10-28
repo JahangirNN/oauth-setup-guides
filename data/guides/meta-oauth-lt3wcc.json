@@ -1,0 +1,171 @@
+{
+  "slug": "meta-oauth-lt3wcc",
+  "header": {
+    "appName": "Meta",
+    "domain": "facebook.com",
+    "tagline": "Meta OAuth app setup and approval, with evidence for every claim.",
+    "consoleUrl": "",
+    "setupTime": "~15-30 minutes",
+    "reviewRequired": "yes",
+    "reviewTime": "Not published",
+    "totalTime": "~15-30 minutes setup + an unpublished review wait",
+    "canIndividualFinish": "build_only",
+    "difficulty": {
+      "setup": 1,
+      "gate": 5,
+      "time": 5,
+      "overall": 5
+    },
+    "lastVerified": "2026-10-28",
+    "coverage": "medium",
+    "setupNote": "Estimated from these prerequisite artifacts: business, verification. The provider does not publish a duration, so this is a heuristic, not a quote."
+  },
+  "markdown": "## Do you need your own OAuth app?\n\nYes. Meta documents that App Review is required for apps that need access to data you do not own or manage. In your case, the data belongs to your users' Meta accounts, not to you, so review applies. No self-serve path around this is documented.\n\nGeneric OAuth context (not provider-specific): you will register an app with the provider, receive credentials (a client-identifier/app-secret pair), register at least one redirect URI, and request the scopes your agent needs. Meta names its console the App Dashboard (https://developers.facebook.com/apps); your app secret is shown there.\n\n## Before you start\n\nMeta documents these requirements and gates:\n\n- Meta App Review — for apps that need access to data you do not own or manage.\n- Business Verification — required for all apps making requests for Advanced Access.\n- Data handling questions — if your app requests permission to use an endpoint to access an app user's data, you may need to complete these.\n- Data Use Checkup — you may also be required to complete one annually.\n\nTwo implications worth knowing before you start:\n\n- This appears usable only in part by individuals: an individual can build and test the app, but may not be able to ship to all users, because the documented requirements include business verification.\n- Time: setup is estimated at about 15-30 minutes from the documented steps. This is a heuristic derived from the prerequisite artifacts (business, verification); the provider does not publish a setup duration.\n\n## Step-by-step setup\n\nThe documentation covers these steps:\n\n1. Create your app in the App Dashboard (https://developers.facebook.com/apps).\n2. Register the redirect URI: in the App Dashboard, under Products in the left side navigation menu, click Facebook Login, then Settings; set or verify the Valid OAuth redirect URIs in the Client OAuth Settings section. The URI you pass as `redirect_uri` at login must be registered there.\n3. If you are using the flow inside a webview within a desktop app, the redirect URI must be exactly `https://www.facebook.com/connect/login_success.html`.\n4. After login, exchange the code at the OAuth access token endpoint. A successful response is JSON containing:\n   - `access_token` — the token string\n   - `token_type` — the token type\n   - `expires_in` — seconds until expiration\n\nField-level specifics beyond these — for example, how to submit an app for review, or a list of available permission names — are not covered by the evidence for this guide.\n\n## Scopes\n\nMeta calls OAuth scopes permissions and features. Access is governed by review status:\n\n- Approved permissions can be requested from any app user; unapproved permissions can only be requested from users who have a role on the requesting app.\n- Approved features are active for all app users; unapproved features are active only for users with a role on the requesting app.\n\nPractical readout: while developing, you can exercise unapproved scopes with your own role-holding test accounts. Your real users get nothing until each permission and feature is approved through App Review.\n\n## Approval and review\n\nReview is required for your use case (apps accessing data you do not own or manage). What testers do matters more than the yes/no:\n\n- Reviewers will test your app to verify it actually uses the permissions and features you are requesting.\n- If reviewers are unable to access your app to test it, your entire submission is rejected.\n- If reviewers can test your app but cannot test functionality that requires a specific permission or feature, you will not be approved for that permission or feature.\n\nHow long will it take? Not published. No review duration is documented in the sources. Realistically, your timeline is ~15-30 minutes of setup plus an unpublished review wait — do not commit externally to a ship date.\n\nExpect additional gates alongside review:\n\n- Business Verification is a prerequisite for Advanced Access.\n- You may need to complete data handling questions.\n- You may be required to complete an annual Data Use Checkup.\n\n## Troubleshooting\n\nDocumented failure modes and the fixes you can reasonably make:\n\n- Every item rejected → testers could not access your app. Make sure the app is fully accessible and exercisable before submitting.\n- One specific permission or feature denied → its functionality could not be tested. Give the app a clear, testable path for every requested item.\n- Login failures around redirect → confirm the redirect URI is registered exactly in Products > Facebook Login > Settings, under Valid OAuth redirect URIs. Inside a desktop webview it must be the fixed `https://www.facebook.com/connect/login_success.html`.\n- `expires_in` confusion → it is seconds-until-expiration, not a timestamp.\n\n## Rollback\n\nNo rollback, suspension, or app-deletion procedure is documented in the evidence for this guide.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. The sources reviewed say app review or verification is required, but no timeline is published. Submitting the app and answering reviewer questions are developer tasks. An individual can build and test, but shipping to all users likely requires business verification or a legal entity.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- Review duration: not published anywhere.\n- Whether a solo developer without a business entity can ship to all users: the requirement (Business Verification) is documented; the outcome for your case is not.\n- The enumeration of permissions and features available to request: not in the evidence.\n- Fees, if any: not documented.\n- Whether data handling questions or the annual Data Use Checkup will apply to you: both are conditional ('may need to', 'may also be required to').\n- Approval outcomes after denial and resubmission: not documented.",
+  "claims": [
+    {
+      "id": "345481_consoleName",
+      "slot": "consoleName",
+      "value": "App Dashboard",
+      "quote": "Your unique app secret, shown on the [App Dashboard](https://developers.facebook.com/apps).",
+      "sourceUrl": "https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow",
+      "sourceTitle": "Manually Build a Login Flow",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.012Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "345481_redirectRules",
+      "slot": "redirectRules",
+      "value": "Redirect URIs must be set for the app in the App Dashboard under Products > Facebook Login > Settings, in the 'Valid OAuth redirect URIs' section of Client OAuth Settings; for a webview within a desktop app, the redirect URI must be https://www.facebook.com/connect/login_success.html.",
+      "quote": "*   `redirect_uri`. The URL that you want to redirect the person logging in back to. This URL will capture the response from the Login Dialog. If you are using this in a webview within a desktop app, this must be set to `https://www.facebook.com/connect/login_success.html`. You can confirm that this URL is set for your app in the App Dashboard. Under **Products** in the App Dashboard’s left side navigation menu, click **Facebook Login**, then click **Settings**. Verify the **Valid OAuth redirect URIs** in the **Client OAuth Settings** section.",
+      "sourceUrl": "https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow",
+      "sourceTitle": "Manually Build a Login Flow",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.012Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "62596e_rejectionCauses",
+      "slot": "rejectionCauses",
+      "value": "Entire submission is rejected if reviewers cannot access the app to test it; if a specific permission or feature cannot be tested, approval is denied for that permission or feature.",
+      "quote": "As part of the review process we will test your app to verify that it actually uses the permissions and features you are requesting. If we are unable to access your app to test it, your entire submission will be rejected. If we are able to test your app but cannot test functionality that requires a specific permission or feature that you are requesting, you will not be approved for that permission or feature.",
+      "sourceUrl": "https://developers.facebook.com/docs/apps/review",
+      "sourceTitle": "App Review process - Responsible Platform Initiatives",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.601Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "07cdf5_requirements",
+      "slot": "requirements",
+      "value": "Meta App Review; Business Verification for Advanced Access; possible data handling questions; possible annual Data Use Checkup.",
+      "quote": "*   [Meta App Review](https://developers.facebook.com/docs/app-review) – For apps that needs access to data that you do not own or manage\n*   [Business Verification](https://developers.facebook.com/documentation/development/release/business-verification) – is required for all apps making requests for [Advanced Access](https://developers.facebook.com/docs/graph-api/overview/access-levels#advanced-access)\n*   If your app requests permission to use an endpoint to access an app user’s data, you may need to complete [data handling questions](https://developers.facebook.com/docs/development/release/data-handling-questions/questions-preview).\n*   You may also be required to complete an annual [Data Use Checkup](https://developers.facebook.com/documentation/resp-plat-initiatives/individual-processes/data-use-checkup).",
+      "sourceUrl": "https://developers.facebook.com/docs/facebook-login/permissions",
+      "sourceTitle": "Permissions Reference for Meta Technologies APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:43.039Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "07cdf5_reviewRequired",
+      "slot": "reviewRequired",
+      "value": "Yes, for apps that need access to data you do not own or manage.",
+      "quote": "[Meta App Review](https://developers.facebook.com/docs/app-review) – For apps that needs access to data that you do not own or manage",
+      "sourceUrl": "https://developers.facebook.com/docs/facebook-login/permissions",
+      "sourceTitle": "Permissions Reference for Meta Technologies APIs",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:43.039Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "62596e_scopes",
+      "slot": "scopes",
+      "value": "Permissions and features must be approved through App Review; approved ones work for all app users, unapproved ones only for users with a role on the requesting app.",
+      "quote": "Permissions that have been approved through App Review can be requested from any app user, but unapproved permissions can only be requested from app users who have a role on the requesting app. Similarly, approved features are active for all app users, but unapproved features are only active for users with a role on the app.",
+      "sourceUrl": "https://developers.facebook.com/docs/apps/review",
+      "sourceTitle": "App Review process - Responsible Platform Initiatives",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.601Z",
+      "match": "exact",
+      "status": "documented",
+      "confidence": 0.9500000000000001
+    },
+    {
+      "id": "345481_tokenModel",
+      "slot": "tokenModel",
+      "value": "Exchanging the code at the OAuth access token endpoint returns a JSON response containing access_token, token_type, and expires_in (seconds-until-expiration).",
+      "quote": "The response you will receive from this endpoint will be returned in JSON format and, if successful, is:\n\n{\n  \"access_token\": {access-token},\n  \"token_type\": {type},\n  \"expires_in\":  {seconds-til-expiration}\n}",
+      "sourceUrl": "https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow",
+      "sourceTitle": "Manually Build a Login Flow",
+      "sourceTier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.012Z",
+      "match": "loose",
+      "status": "documented",
+      "confidence": 0.8600000000000001
+    }
+  ],
+  "inferences": [
+    {
+      "slot": "canIndividualFinish",
+      "value": "Build only",
+      "basis": "The documented requirements include business verification or a legal entity, so an individual can build and test but may not be able to ship to all users.",
+      "confidence": 0.6
+    },
+    {
+      "slot": "setupTime",
+      "value": "~15-30 minutes",
+      "basis": "Estimated from these prerequisite artifacts: business, verification. The provider does not publish a duration, so this is a heuristic, not a quote.",
+      "confidence": 0.4
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://developers.facebook.com/docs/apps/review",
+      "title": "App Review process - Responsible Platform Initiatives",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.601Z"
+    },
+    {
+      "url": "https://developers.facebook.com/docs/facebook-login/guides/advanced/manual-flow",
+      "title": "Manually Build a Login Flow",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:07:46.012Z"
+    },
+    {
+      "url": "https://developers.facebook.com/docs/facebook-login/permissions",
+      "title": "Permissions Reference for Meta Technologies APIs",
+      "tier": 1,
+      "fetchedAt": "2026-10-28T12:07:43.039Z"
+    }
+  ],
+  "evidenceSummary": {
+    "pagesFetched": 3,
+    "pagesUsed": 3,
+    "quotesVerified": 11,
+    "quotesRejected": 5,
+    "claims": 7,
+    "conflicts": 0,
+    "byStatus": {
+      "tested": 0,
+      "documented": 7,
+      "reported": 0,
+      "inferred": 0,
+      "unknown": 0
+    },
+    "unsourcedLinks": [],
+    "numericViolations": []
+  },
+  "generatedAt": "2026-10-28T12:11:45.158Z",
+  "model": "IFM/K2-Horizon-375B-A23B",
+  "durationMs": 53681
+}

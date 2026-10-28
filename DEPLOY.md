@@ -2,7 +2,7 @@
 
 ## What ships
 
-- `data/guides/` contains six curated guides: GitHub, Linear, X, Cal.com, Google, and Meta. It is committed and read at runtime, so the library is non-empty on a fresh deployment.
+- `data/guides/` contains seven curated guides: GitHub, Linear, X, Cal.com, Discord, Google, and Meta. It is committed and read at runtime, so the library is non-empty on a fresh deployment.
 - `data/generated/` is gitignored. It holds local repeat runs and is not part of a Git deployment.
 - `data/cache/` is gitignored and best-effort. Fetched pages are re-fetched on a cold deployment.
 
@@ -71,7 +71,7 @@ entries, so run it only when you intend to replace the shipped set.
 ## 6. Post-deploy smoke test
 
 - [ ] `GET /api/health` returns `status: "ok"`, `model: "configured"`, `storage: "redis"`.
-- [ ] `/` lists the six curated guides.
+- [ ] `/` lists the seven curated guides.
 - [ ] Open a library guide; click **Download .md** and confirm a `text/markdown` response.
 - [ ] Use `/new` with a small unfamiliar app; stages stream and a share link is returned.
 - [ ] Open the share link in an incognito window or on another device; it resolves.

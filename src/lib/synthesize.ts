@@ -13,8 +13,22 @@ function inferenceOf(inferences: Inference[], slot: Slot): Inference | null {
 function parseReview(value: string | null): GuideHeader["reviewRequired"] {
   if (!value) return "unknown";
   const v = value.toLowerCase();
-  if (/(not required|no review|no formal review|does not require|no approval|none required|\bno\b)/.test(v)) return "no";
-  if (/(sometimes|may require|depending|conditional|for sensitive|only if|when you request|if you request|if your app)/.test(v)) return "sometimes";
+  // Conditional review must win over a bare "no" later in the sentence:
+  // "Yes, but only for certain scopes" is not a no-review app.
+  if (
+    /(sometimes|may require|depending|conditional|for sensitive|only for|only if|only when|when you request|if you request|if your app|certain scopes|some scopes|scopes require|requires approval|requires review)/.test(
+      v
+    )
+  ) {
+    return "sometimes";
+  }
+  if (
+    /(not required|no review|no formal review|does not require|no approval|none required|^no\b|^false\b)/.test(
+      v
+    )
+  ) {
+    return "no";
+  }
   if (/^(yes|true)\b/.test(v)) return "yes";
   if (/(required|review|verif|approval|submit)/.test(v)) return "yes";
   return "unknown";
@@ -124,9 +138,13 @@ export function deriveHeader(
   const totalTime =
     review === "no"
       ? setupTime
-      : reviewDays === null
-        ? `${setupTime} setup + an unpublished review wait`
-        : `${setupTime} setup + up to ${humanizeDays(reviewDays)} review`;
+      : review === "sometimes"
+        ? reviewDays === null
+          ? `${setupTime} setup; review wait, if required, not published`
+          : `${setupTime} setup + up to ${humanizeDays(reviewDays)} review if required`
+        : reviewDays === null
+          ? `${setupTime} setup + an unpublished review wait`
+          : `${setupTime} setup + up to ${humanizeDays(reviewDays)} review`;
 
   const consoleUrl = claims.find((c) => c.slot === "appCreationUrl")?.value ?? "";
   const consoleName = claims.find((c) => c.slot === "consoleName")?.value ?? "";
@@ -232,6 +250,15 @@ This guide was produced from public documentation; no provider account was used 
   return `${markdown}\n\n${section}`;
 }
 
+export function guideLooksComplete(markdown: string): boolean {
+  const text = markdown.trim();
+  if (text.length < 600) return false;
+  if (/(final will be here|placeholder|lorem ipsum|to be continued|coming soon)/i.test(text)) return false;
+  const headings = text.match(/^##\s+.+$/gm) ?? [];
+  if (headings.length < 3) return false;
+  return /##\s+(Step-by-step setup|Approval and review|Scopes|Before you start)/i.test(text);
+}
+
 export async function synthesizeGuide(
   appName: string,
   domain: string,
@@ -253,6 +280,7 @@ AUDIENCE: a developer building an AI agent whose users must connect their ${appN
 
 ALLOWED FACTS: only the claims below. Every provider-specific statement must be supported by one of them.
 - Do NOT invent URLs, field names, button labels, durations, or fees.
+- Quote numbers and units exactly as supplied. Do not convert seconds to days or weeks, and do not round.
 - If a fact is missing, write "Not documented" or omit that detail. Never guess.
 - Generic OAuth education (client ID, redirect URI, scopes) is allowed, but do not attach provider specifics to it.
 
@@ -285,7 +313,7 @@ ${JSON.stringify(compact, null, 2)}`;
   const result = await chatJSON<{ markdown: string }>({
     system:
       "You are a technical writer producing evidence-bound documentation. You never add a fact that is not in the supplied claims. " +
-      "You would rather write 'not documented' than guess.",
+      "You would rather write 'not documented' than guess. Always return the complete guide body, never a placeholder or a note to self.",
     user,
     schema: guideSchema,
     schemaName: "guide",
@@ -294,7 +322,34 @@ ${JSON.stringify(compact, null, 2)}`;
     timeoutMs: 240_000,
   });
 
-  const rawMarkdown = result.data.markdown.trim();
+  let rawMarkdown = result.data.markdown.trim();
+  let latencyMs = result.latencyMs;
+
+  if (!guideLooksComplete(rawMarkdown)) {
+    const retry = await chatJSON<{ markdown: string }>({
+      system:
+        "You are a technical writer producing evidence-bound documentation. You never add a fact that is not in the supplied claims. " +
+        "Always return the complete guide body, never a placeholder or a note to self.",
+      user: `${user}\n\nIMPORTANT: Your previous answer was not a guide. It was:\n"""${rawMarkdown.slice(
+        0,
+        300
+      )}"""\nReturn the FULL Markdown guide now, using the required headings. Do not write "Final will be here", "placeholder", or any similar note.`,
+      schema: guideSchema,
+      schemaName: "guide",
+      maxTokens: 16_000,
+      effort: "high",
+      timeoutMs: 240_000,
+    });
+    rawMarkdown = retry.data.markdown.trim();
+    latencyMs += retry.latencyMs;
+  }
+
+  if (!guideLooksComplete(rawMarkdown)) {
+    throw new Error(
+      `Synthesis returned an incomplete guide (${rawMarkdown.length} characters). The run was stopped instead of publishing a placeholder. Please retry.`
+    );
+  }
+
   // The page already renders the app name and tagline; a model-added H1 duplicates it.
   const markdown = rawMarkdown
     .replace(/^#\s+.+\n+/, "")
@@ -322,6 +377,6 @@ ${JSON.stringify(compact, null, 2)}`;
     markdown: addAgentSection(markdown, header),
     numericViolations: [...new Set(violations)],
     unsourcedLinks,
-    latencyMs: result.latencyMs,
+    latencyMs,
   };
 }

@@ -10,7 +10,9 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "research": "tsx scripts/research.ts",
-    "finalize": "tsx scripts/finalize.ts"
+    "finalize": "tsx scripts/finalize.ts",
+    "resynth": "tsx scripts/resynth.ts",
+    "selftest": "tsx scripts/selftest.ts"
   },
   "engines": {
     "node": ">=20.9.0"

@@ -39,7 +39,7 @@ const SLOT_GUIDE: Record<Slot, string> = {
     "The URL where a developer creates a new OAuth app / registers an application. Prefer a URL explicitly present in the page.",
   consoleName: "The name of the developer console or dashboard (e.g. 'Google Auth Platform', 'GitHub Developer settings').",
   reviewRequired:
-    "Whether the PROVIDER (the company whose API this is) reviews, verifies, or approves YOUR OAuth app before external users can authorize it. Do NOT report workspace-admin approval for installing someone else's app, marketplace listing review, or enterprise admin consent unless it gates creating or publishing your own OAuth app.",
+    "Whether the PROVIDER (the company whose API this is) reviews, verifies, or approves YOUR OAuth app before external users can authorize it. Answer 'yes' only if every app is reviewed, 'sometimes' if review applies only to some scopes, features, intents, or sensitive data (state the condition), and 'no' if no review is documented for a normal app. Do NOT report workspace-admin approval for installing someone else's app, marketplace listing review, or enterprise admin consent unless it gates creating or publishing your own OAuth app.",
   reviewTimeline:
     "How long the PROVIDER's review or verification of YOUR OAuth app takes, exactly as stated. Do NOT report install-approval flows or marketplace review unrelated to OAuth app verification. Never convert a qualitative phrase into a number.",
   setupTime: "How long creating and configuring YOUR OAuth app takes, if the page states it.",
@@ -95,7 +95,7 @@ ${text}
     user,
     schema,
     schemaName: "extraction",
-    maxTokens: 8000,
+    maxTokens: 16_000,
     effort: "high",
     timeoutMs: 180_000,
   });

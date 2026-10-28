@@ -2,7 +2,7 @@
 
 Most OAuth tutorials tell you which buttons to click. They do not tell you whether you can finish, whether the provider will review your app, or where the documentation stops. This project is a small library of guides for creating a provider OAuth app and getting it approved, plus a live agent that researches an unfamiliar app from its public documentation and publishes a shareable guide. Every provider-specific claim carries a verbatim quote, a source URL and tier, and an evidence status. No provider account was used, no OAuth app was created, and no approval was submitted; the guides show that boundary instead of hiding it.
 
-Built with Next.js 16 (App Router), React 19, TypeScript, and Tailwind 4. The only model is `IFM/K2-Horizon-375B-A23B`. The shipped library contains six curated guides: GitHub, Linear, X, Cal.com, Google, and Meta. Cal.com came through the generic crawl rather than a known documentation root, so it doubles as the unfamiliar-app example. That library is intentionally small; the pipeline, not a hand-maintained list, is the part designed to scale.
+Built with Next.js 16 (App Router), React 19, TypeScript, and Tailwind 4. The only model is `IFM/K2-Horizon-375B-A23B`. The shipped library contains seven curated guides: GitHub, Linear, X, Cal.com, Discord, Google, and Meta. Cal.com came through the generic crawl rather than a known documentation root; Discord demonstrates conditional scope approval. That library is intentionally small; the pipeline, not a hand-maintained list, is the part designed to scale.
 
 ## Quick start
 
@@ -81,7 +81,7 @@ This prints the resolved app and the scored candidates (up to 10) with their rea
 
 Start at `/`. The library table is sorted by difficulty and shows setup time, review requirement, review wait, whether an individual can finish, and last-verified date. Each row opens a guide with header cards, the Markdown body, a per-claim evidence appendix, and the source list. Copy link and download `.md` are both available.
 
-This snapshot ships six curated guides in `data/guides`. Repeat runs from local development live in `data/generated`, which is gitignored. The six below are the shipped examples:
+This snapshot ships seven curated guides in `data/guides`. Repeat runs from local development live in `data/generated`, which is gitignored. The seven below are the shipped examples:
 
 | App | Example guide | What it demonstrates |
 |---|---|---|
@@ -89,12 +89,13 @@ This snapshot ships six curated guides in `data/guides`. Repeat runs from local 
 | Linear | `/g/linear-oauth-3j37sk` | Self-serve setup, no review documented, ~5–10 minutes, difficulty 1. |
 | X | `/g/x-oauth-hd8e0q` | Self-serve OAuth app, no review documented, ~5–10 minutes, difficulty 1; API access and pricing are not established by the docs read. |
 | Cal.com | `/g/cal-oauth-uc5igi` | Generic-crawl discovery (no known root), API-first OAuth client creation, verified-client gate for App Store listing; difficulty 5. |
+| Discord | `/g/discord-oauth-j5yqap` | Scope-level approval: some scopes require Discord approval, several are partner-only, and no review process or SLA is published; self-serve setup estimated at 5–10 minutes; difficulty 4. |
 | Google | `/g/google-oauth-wcdh2k` | Brand, sensitive-scope, and restricted-scope verification; 2–3 business days to 6 weeks plus a CASA assessment; difficulty 5. |
 | Meta | `/g/meta-oauth-lt3wcc` | App Review with business verification; an individual can build but may not ship to all users; difficulty 5. |
 
 Then exercise the live flow at `/new`, or use the search box on `/`. Enter a name or URL. The page streams the pipeline stages and discovered sources, then redirects to `/g/<slug>` when the guide is published. A cold run usually takes 60–180 seconds; cached pages and smaller runs can finish faster.
 
-Known documentation roots exist for GitHub, Google, Meta, Microsoft, X, Linear, and Slack, so those resolve quickly. An app outside that list exercises the generic crawl. A good test is an app you know has OAuth docs but is not in the table above; Slack has known roots but is not one of the six examples. Cal.com is the shipped generic-crawl example: it resolved through `llms.txt` and page crawling, not a known root.
+Known documentation roots exist for GitHub, Google, Meta, Microsoft, X, Linear, and Slack, so those resolve quickly. An app outside that list exercises the generic crawl. A good test is an app you know has OAuth docs but is not in the table above; Slack has known roots but is not one of the seven examples. Cal.com is the shipped generic-crawl example: it resolved through `llms.txt` and page crawling, not a known root.
 
 The honest failure mode matters more than the happy path. Try a domain with no public OAuth documentation. If discovery finds no candidate at all, the run fails with `No public documentation found...` instead of inventing a guide. If it finds pages but no OAuth-specific facts, it publishes a thin guide: low coverage, “Not documented” answers, and absence-based conclusions explicitly labeled as inferences. It does not fill the gap with invented console steps; the prompt forbids new specifics, and the grounding check flags unsupported time/user numbers and URLs. Treat an inference from absence as a hypothesis, not a provider statement.
 
@@ -153,8 +154,9 @@ The stored evidence summary records pages fetched, quotes verified, quotes rejec
 
 **Actually run in this snapshot (2026-10-28):**
 
-- `npm run typecheck` and `npm run build` pass with Next 16.4.3 on Node 24.14.1.
-- The pipeline ran end-to-end against real public documentation for GitHub, Google, Meta, Linear, X, and Cal.com. All six are shipped in `data/guides`; Cal.com came through the generic crawl rather than a known root.
+- `npm run typecheck`, `npm run selftest`, and `npm run build` pass with Next 16.4.3 on Node 24.14.1.
+- The pipeline ran end-to-end against real public documentation for GitHub, Google, Meta, Linear, X, Cal.com, and Discord. All seven are shipped in `data/guides`; Cal.com came through the generic crawl rather than a known root. The Discord run completed in about 60 seconds from five first-party pages, with 23 verified quotes and 9 claims.
+- Synthesis rejects placeholder or incomplete bodies before publishing. `npm run selftest` covers that guard and the conditional-review parser (`sometimes` rather than `no` when only some scopes are gated).
 - Every stored guide has `tested: 0`. This is expected: the agent reads documentation, not a provider console.
 - Quote extraction and substring verification executed on those runs, with rejected quotes recorded in each guide's evidence summary.
 
@@ -227,12 +229,12 @@ src/lib/store.ts                     Upstash REST or filesystem store
 src/lib/ifm.ts                       IFM client and retry handling
 scripts/research.ts                  end-to-end CLI
 scripts/discover.ts                  discovery debugger
-data/guides/                         shipped library JSON (6 curated guides)
+data/guides/                         shipped library JSON (7 curated guides)
 data/generated/                      local pipeline output; gitignored
 data/cache/                          fetched-page cache; gitignored
 ```
 
-`data/guides` is committed and read by `listGuides` and `getGuide`, so a fresh clone starts with six working guides. `data/generated` is local-only; a clone does not include repeat runs. On Vercel, `data/guides` ships with the deployment and live runs are stored in Upstash.
+`data/guides` is committed and read by `listGuides` and `getGuide`, so a fresh clone starts with seven working guides. `data/generated` is local-only; a clone does not include repeat runs. On Vercel, `data/guides` ships with the deployment and live runs are stored in Upstash.
 
 ## What I would do next
 

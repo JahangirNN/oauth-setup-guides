@@ -2,7 +2,7 @@ import { mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { displayNameFor } from "../src/lib/domain";
 import { inferSetupTime } from "../src/lib/infer";
-import { addAgentSection, deriveHeader } from "../src/lib/synthesize";
+import { addAgentSection, deriveHeader, guideLooksComplete } from "../src/lib/synthesize";
 import type { Claim, EvidenceStatus, Guide, Inference } from "../src/lib/types";
 
 const ROOT = process.cwd();
@@ -72,12 +72,25 @@ async function main() {
 
   await mkdir(LIBRARY, { recursive: true });
 
+  const selected = [...byApp.values()].filter((guide) => {
+    if (guideLooksComplete(guide.markdown)) return true;
+    console.warn(
+      `Skipping ${guide.header.appName} (${guide.slug}): markdown is incomplete or a placeholder.`
+    );
+    return false;
+  });
+
+  if (selected.length === 0) {
+    console.error("No complete guides to publish.");
+    process.exit(1);
+  }
+
   // Rebuild the shipped library from scratch so stale runs do not linger.
   for (const file of await readdir(LIBRARY).catch(() => [] as string[])) {
     if (file.endsWith(".json")) await unlink(path.join(LIBRARY, file));
   }
 
-  for (const guide of byApp.values()) {
+  for (const guide of selected) {
     const claims = sanitizeClaims(guide.claims);
     const inferences: Inference[] = (guide.inferences ?? []).filter((i) => i.slot !== "setupTime");
     const setup = inferSetupTime(claims);

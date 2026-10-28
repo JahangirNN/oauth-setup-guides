@@ -105,6 +105,10 @@ async function rawCall(opts: ChatOptions & { maxTokens: number }): Promise<{
       continue;
     }
 
+    if (finishReason === "length") {
+      throw new Error("IFM response hit the token limit (finish=length)");
+    }
+
     return {
       content,
       finishReason,

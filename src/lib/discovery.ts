@@ -65,6 +65,16 @@ const KNOWN_DOC_ROOTS: Record<string, string[]> = {
     "https://docs.x.com/fundamentals/authentication/overview",
   ],
   "linear.app": ["https://linear.app/developers/oauth-2-0-authentication"],
+  "discord.com": [
+    "https://docs.discord.com/developers/quick-start/getting-started",
+    "https://docs.discord.com/developers/topics/oauth2",
+    "https://docs.discord.com/developers/platform/oauth2-and-permissions",
+  ],
+  "discordapp.com": [
+    "https://docs.discord.com/developers/quick-start/getting-started",
+    "https://docs.discord.com/developers/topics/oauth2",
+    "https://docs.discord.com/developers/platform/oauth2-and-permissions",
+  ],
   "slack.com": [
     "https://api.slack.com/authentication/oauth-v2",
     "https://api.slack.com/apps",
@@ -515,6 +525,10 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
     score -= 12;
     reasons.push("console-host");
   }
+  if (/\/applications\/select\//.test(pathname)) {
+    score -= 15;
+    reasons.push("console-ui");
+  }
   // Section-level relevance. Consumer and maintenance docs crowd out the
   // pages that actually explain how to create an app.
   if (/\/building-oauth-apps\//.test(pathname)) {
@@ -673,7 +687,13 @@ async function fromLlmsTxt(domain: string, appDomain: string): Promise<Candidate
       const matches = [...line.matchAll(/https?:\/\/[^\s)\]"'>]+/g)];
       for (const match of matches) {
         const found = match[0].replace(/[.,;`]+$/, "");
-        if (!/oauth/i.test(found)) continue;
+        if (
+          !/(oauth|getting.?started|quick.?start|create.*app|register.*app|app.*setup|developer.*portal)/i.test(
+            found
+          )
+        ) {
+          continue;
+        }
         if (found.includes("`") || found.includes("<")) continue;
         const s = scoreCandidate(found, appDomain);
         if (s.score < 5) continue;
@@ -852,6 +872,9 @@ export async function discoverSources(name: string, domain: string): Promise<Can
       (c) =>
         c.reason.startsWith("known-root") ||
         /oauth/i.test(c.url + " " + c.title) ||
+        /(getting.?started|quick.?start|create.*app|register.*app|app.*setup)/i.test(
+          c.url + " " + c.title
+        ) ||
         c.score >= 12
     )
     .sort((a, b) => b.score - a.score)

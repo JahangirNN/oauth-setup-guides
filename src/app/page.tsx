@@ -55,7 +55,7 @@ export default async function HomePage() {
         </ul>
       </section>
 
-      <section className="mt-20" aria-labelledby="guides-heading">
+      <section id="library" className="mt-20 scroll-mt-20" aria-labelledby="guides-heading">
         <div className="flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
           <div>
             <h2 id="guides-heading" className="text-2xl font-semibold tracking-tight text-ink">

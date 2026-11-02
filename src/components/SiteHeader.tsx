@@ -1,6 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function SiteHeader() {
+  const pathname = usePathname();
+
+  const handleLibraryClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === "/") {
+      const el = document.getElementById("library");
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: "smooth" });
+        window.history.pushState(null, "", "/#library");
+      }
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 border-b border-line/80 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1100px] items-center justify-between gap-4 px-6">
@@ -27,8 +43,9 @@ export function SiteHeader() {
 
         <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
           <Link
-            href="/"
-            className="hidden rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-subtle hover:text-ink sm:block"
+            href="/#library"
+            onClick={handleLibraryClick}
+            className="rounded-md px-2.5 py-1.5 text-sm text-muted transition-colors hover:bg-subtle hover:text-ink"
           >
             Library
           </Link>

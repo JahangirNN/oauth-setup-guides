@@ -1,0 +1,35 @@
+{
+  "slug": "linear-oauth-3j37sk",
+  "observation": {
+    "id": "linear-oauth-3j37sk-2026-11-01",
+    "provider": "Linear",
+    "attemptedAt": "2026-11-01T00:00:00.000Z",
+    "method": "console",
+    "outcome": "created",
+    "steps": [
+      {
+        "label": "Create a new OAuth app in the provider console",
+        "detail": "Opened the Linear developer console and created an OAuth application.",
+        "outcome": "observed"
+      },
+      {
+        "label": "Complete registration and receive credentials",
+        "detail": "Finished registration and received a client ID and client secret.",
+        "outcome": "observed"
+      },
+      {
+        "label": "Confirm the app works",
+        "detail": "Ran the setup a total of three times; all three attempts passed.",
+        "outcome": "observed"
+      }
+    ],
+    "created": {
+      "oauthApp": true,
+      "clientId": true,
+      "clientSecret": true,
+      "submittedForReview": false
+    },
+    "credentialsStored": false,
+    "notes": "Operator-run manual test on 2026-11-01 at 00:00, three runs per app, all passed. App created and credentials issued; no review submission was made for this provider. Recorded from the operator's recollection — per-field console labels and redirect-URI behavior were not retained. No credentials were stored."
+  }
+}

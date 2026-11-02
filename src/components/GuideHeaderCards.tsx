@@ -60,7 +60,7 @@ export function GuideHeaderCards({ header }: { header: GuideHeader }) {
         {header.setupTime}
         {header.setupNote ? (
           <p className="mt-2 text-xs font-normal leading-relaxed text-muted">
-            <span className="font-medium text-ink-soft">Inferred:</span>{" "}
+            <span className="font-medium text-ink-soft">Context:</span>{" "}
             {firstSentence(header.setupNote)}
           </p>
         ) : null}
@@ -70,7 +70,7 @@ export function GuideHeaderCards({ header }: { header: GuideHeader }) {
         <ReviewBadge value={header.reviewRequired} />
         {header.reviewNote ? (
           <p className="mt-2 text-xs font-normal leading-relaxed text-muted">
-            <span className="font-medium text-ink-soft">Inferred:</span>{" "}
+            <span className="font-medium text-ink-soft">Context:</span>{" "}
             {firstSentence(header.reviewNote)}
           </p>
         ) : null}

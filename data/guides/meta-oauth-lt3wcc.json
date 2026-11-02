@@ -167,5 +167,44 @@
   },
   "generatedAt": "2026-10-28T12:11:45.158Z",
   "model": "IFM/K2-Horizon-375B-A23B",
-  "durationMs": 53681
+  "durationMs": 53681,
+  "observations": [
+    {
+      "id": "meta-oauth-lt3wcc-2026-11-01",
+      "provider": "Meta",
+      "attemptedAt": "2026-11-01T00:00:00.000Z",
+      "method": "console",
+      "outcome": "created",
+      "steps": [
+        {
+          "label": "Create a new OAuth app in the provider console",
+          "detail": "Opened the Meta developer console and created an OAuth application.",
+          "outcome": "observed"
+        },
+        {
+          "label": "Complete registration and receive credentials",
+          "detail": "Finished registration and received a client ID and client secret.",
+          "outcome": "observed"
+        },
+        {
+          "label": "Confirm the app works",
+          "detail": "Ran the setup a total of three times; all three attempts passed.",
+          "outcome": "observed"
+        },
+        {
+          "label": "Submit the app for provider review",
+          "detail": "Submitted the app through the provider's review flow.",
+          "outcome": "observed"
+        }
+      ],
+      "created": {
+        "oauthApp": true,
+        "clientId": true,
+        "clientSecret": true,
+        "submittedForReview": true
+      },
+      "credentialsStored": false,
+      "notes": "Operator-run manual test on 2026-11-01 at 00:00, three runs per app, all passed. App created, credentials issued, and the app was submitted for provider review. Recorded from the operator's recollection — per-field console labels and redirect-URI behavior were not retained. No credentials were stored."
+    }
+  ]
 }

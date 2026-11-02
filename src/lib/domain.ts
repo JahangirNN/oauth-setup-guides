@@ -90,6 +90,18 @@ export function registrableDomain(hostname: string): string {
   return lastTwo;
 }
 
+/**
+ * A docs host on the provider's own brand, including a docs subdomain on
+ * another TLD (for example developers.notion.com for notion.so).
+ */
+export function isProviderHost(host: string, appDomain: string): boolean {
+  const appBase = registrableDomain(appDomain);
+  const hostBase = registrableDomain(host);
+  if (hostBase === appBase) return true;
+  const sameBrand = hostBase.split(".")[0] === appBase.split(".")[0];
+  return sameBrand && /^(?:docs?|developers?|api|learn|support|help)\./i.test(host);
+}
+
 export function safeUrl(input: string): URL | null {
   const withProtocol = /^https?:\/\//i.test(input) ? input : `https://${input}`;
   try {

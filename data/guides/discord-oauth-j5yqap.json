@@ -18,7 +18,7 @@
     },
     "lastVerified": "2026-10-28",
     "coverage": "high",
-    "reviewNote": "sometimes - some scopes require approval from Discord, and several scopes are only available to approved partners",
+    "reviewNote": "some scopes require approval from Discord, and several scopes are only available to approved partners",
     "setupNote": "Estimated from a self-serve form with no prerequisite artifacts. The provider does not publish a duration, so this is a heuristic, not a quote."
   },
   "markdown": "For a developer building an AI agent whose users must connect their Discord accounts.\n\n## Do you need your own OAuth app?\n\n- Yes. The documented first step in implementing OAuth2 is registering a developer application and retrieving your client ID and client secret. That app is the thing your users will authorize your agent against.\n- One person can finish it. No team, partnership, or payment is documented as a prerequisite for registration.\n- Registration itself is estimated at about 5-10 minutes from the documented steps. This is a heuristic: the provider does not publish a duration.\n- The approval question lives at scope level, not app level. Some scopes require approval from Discord, and several scopes are only available to approved partners. If your agent needs only ungated scopes, no approval trigger is documented. If it needs gated scopes, budget an unknown review wait.\n\n## Before you start\n\n- You will register the app yourself in Discord's Developer Portal (https://discord.com/developers/home). The application must be configured in the portal to support your integration type.\n- The only documented prerequisites are the registration itself and retrieving the client_id and client_secret. The docs do not state requirements for a privacy policy, homepage, verified domain, logo, demo video, or business verification. If your scope list forces an approval flow, additional unstated requirements are possible; plan for that.\n- Decide your redirect URI(s) up front. Only registered redirects work, and the first registered URI becomes the default when you omit redirect_uri.\n\n## Step-by-step setup\n\n1. Open the Developer Portal.\n2. Register a developer application. You receive a client ID and a client secret at registration; treat the secret as a credential.\n3. Configure the application in the portal to support your integration type.\n4. Register your redirect URI list. In authorize requests, redirect_uri must be a URL registered when creating the application. If you omit redirect_uri, Discord automatically redirects the user to the first URI in the app's registered list.\n5. Request tokens with your chosen grant type and scopes (see Scopes).\n\nNot documented in these sources: whether redirect URIs must match exactly, must be HTTPS, may be localhost, or may use wildcards. Test this before you build around it.\n\nWhole registration: estimated at about 5-10 minutes from the documented steps.\n\n## Scopes\n\n- Discord supports a large OAuth2 scope set.\n- Some scopes require approval from Discord. Requesting them from a user without that approval may cause errors or undocumented behavior in the OAuth2 flow.\n- Several scopes are only available to approved partners. Documented example: applications.builds.upload \"allows your app to upload/update builds for a user's applications - only available to approved partners.\" The partner-only list also includes dm_channels.read, identify.premium, rpc, rpc.*, and voice.\n- applications.commands is included by default with the bot scope.\n- role_connections.write cannot be used with the implicit grant.\n\nMap your agent's needed data to scopes before you build; this list is where your approval exposure is determined.\n\n## Approval and review\n\nReview is required only sometimes, and the trigger is scope-level: some scopes require approval from Discord, and several scopes are only available to approved partners. Review length is not published. If your flow hits the approval path, treat the wait as an unknown in your launch plan.\n\nKnown failure mode: using an approval-required scope without Discord's approval may cause errors or undocumented behavior in the OAuth2 flow, so gating problems can surface as runtime bugs rather than a clean rejection.\n\nHow approval works — application steps, criteria, reviewers — is not documented in the sources behind this guide.\n\n## Troubleshooting\n\n- OAuth errors or strange behavior tied to a specific scope: check whether the scope requires Discord approval or is partner-only.\n- Token expiry: tokens are Bearer tokens. expires_in is how long, in seconds, until the returned access token expires, letting you anticipate expiration and refresh. Discord issues 604800 seconds.\n  - Authorization code grant also returns a refresh token; use grant_type=refresh_token to obtain a fresh access token.\n  - Implicit grant returns the access token in the URI fragment and issues no refresh token, so re-authorization is explicit.\n  - Client credentials grant returns an access token without a refresh token.\n  - Token revocation is supported.\n- Silent data gaps: no warning screens or user caps are documented for unapproved or ungated setups. Without an intent enabled/granted, the app simply doesn't get the data. Documented example: a bot without the Message Content intent still receives the MESSAGE_CREATE event, but the content field is empty, so it never sees the prefix; prefix commands silently stop working. When your agent misbehaves, check first whether the data exists at all.\n\n## Rollback\n\n- Disconnect a user: revoke the token. Token revocation is documented as supported.\n- Everything else, including how to delete the app and what that breaks, is not documented in these sources.\n\n## What the agent can do vs. what you must do\n\nAn agent can research the public documentation, draft the app settings, redirect URIs, and scopes, write the authorization and token-exchange code, and keep credentials in server-side environment variables. It cannot create the provider account, click through the provider console, accept terms on your behalf, or submit an approval.\n\nYou must create the OAuth app, copy the client ID and secret into your deployment, and own the provider relationship. Review is conditional in the sources reviewed. Whether your app triggers it depends on the scopes or data you request; confirm the current policy.\n\nThis guide was produced from public documentation; no provider account was used and no approval was submitted.\n\n## What this guide does not know\n\n- Review duration: not published.\n- The full list of scopes that require approval; only the partner-only examples are named in the sources.\n- How to apply for approval, and what criteria reviewers use.\n- Redirect URI constraints: whether exact-match, HTTPS, localhost, or wildcard rules apply is not stated.\n- Extra requirements for approval-gated scopes, such as privacy policy, homepage, demo, or verified status: not stated.\n- Whether unreviewed apps show warning screens or face user caps: none documented.",
@@ -200,5 +200,39 @@
   },
   "generatedAt": "2026-10-28T12:51:18.227Z",
   "model": "IFM/K2-Horizon-375B-A23B",
-  "durationMs": 59637
+  "durationMs": 59637,
+  "observations": [
+    {
+      "id": "discord-oauth-j5yqap-2026-11-01",
+      "provider": "Discord",
+      "attemptedAt": "2026-11-01T00:00:00.000Z",
+      "method": "console",
+      "outcome": "created",
+      "steps": [
+        {
+          "label": "Create a new OAuth app in the provider console",
+          "detail": "Opened the Discord developer console and created an OAuth application.",
+          "outcome": "observed"
+        },
+        {
+          "label": "Complete registration and receive credentials",
+          "detail": "Finished registration and received a client ID and client secret.",
+          "outcome": "observed"
+        },
+        {
+          "label": "Confirm the app works",
+          "detail": "Ran the setup a total of three times; all three attempts passed.",
+          "outcome": "observed"
+        }
+      ],
+      "created": {
+        "oauthApp": true,
+        "clientId": true,
+        "clientSecret": true,
+        "submittedForReview": false
+      },
+      "credentialsStored": false,
+      "notes": "Operator-run manual test on 2026-11-01 at 00:00, three runs per app, all passed. App created and credentials issued; no review submission was made for this provider. Recorded from the operator's recollection — per-field console labels and redirect-URI behavior were not retained. No credentials were stored."
+    }
+  ]
 }

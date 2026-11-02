@@ -12,6 +12,7 @@
     "research": "tsx scripts/research.ts",
     "finalize": "tsx scripts/finalize.ts",
     "resynth": "tsx scripts/resynth.ts",
+    "record-observation": "tsx scripts/record-observation.ts",
     "selftest": "tsx scripts/selftest.ts"
   },
   "engines": {

@@ -36,6 +36,53 @@ export interface VerifyOutcome {
   rejected: number;
 }
 
+/**
+ * Plugin-specific OAuth docs often describe registering a plugin with a
+ * third-party OAuth provider. That is a different flow from creating the
+ * provider's own OAuth app and must not become a setup prerequisite.
+ */
+export function isPluginOnlyClaim(
+  page: Pick<PageDoc, "url" | "title">,
+  claim: { slot: Slot; value: string; quote: string }
+): boolean {
+  const pageHay = `${page.url} ${page.title}`;
+  if (!/(?:\/plugins?\/|with-plugins|plugin-oauth)/i.test(pageHay)) return false;
+  if (!/\bplugin\b/i.test(`${claim.value} ${claim.quote}`)) return false;
+  return /^(requirements|setupTime|reviewRequired|reviewTimeline|unverifiedUserExperience)$/.test(
+    claim.slot
+  );
+}
+
+/**
+ * Enterprise managed authorization pages describe JWT/assertion failures for a
+ * different connection type. Those are not common OAuth-app rejection causes.
+ */
+export function isEnterpriseAuthClaim(
+  page: Pick<PageDoc, "url" | "title">,
+  _claim: { slot: Slot; value: string; quote: string }
+): boolean {
+  const pageHay = `${page.url} ${page.title}`;
+  // Enterprise-managed authorization / MCP pages describe a different
+  // connection type (assertions, ID-JAG, managed grants). Their details do not
+  // belong in a standard OAuth-app setup guide.
+  return /(?:enterprise-managed|enterprise managed|\/mcp\/)/i.test(pageHay);
+}
+
+/** PAT pages are not evidence for the OAuth-app requirements or token model. */
+export function isPersonalAccessTokenClaim(
+  page: Pick<PageDoc, "url" | "title">,
+  claim: { slot: Slot; value: string; quote: string }
+): boolean {
+  const pageHay = `${page.url} ${page.title}`;
+  if (!/(?:personal-access-tokens?|personal access tokens?)/i.test(pageHay)) return false;
+  if (/\b(?:oauth|public connection|oauth app|oauth application)\b/i.test(`${claim.value} ${claim.quote}`)) {
+    return false;
+  }
+  return /^(requirements|setupTime|reviewRequired|reviewTimeline|unverifiedUserExperience|redirectRules|rejectionCauses|scopes|tokenModel|canIndividualFinish)$/.test(
+    claim.slot
+  );
+}
+
 export function verifyClaims(pageClaims: Array<{
   slot: Slot;
   value: string;
@@ -47,6 +94,14 @@ export function verifyClaims(pageClaims: Array<{
 
   for (const c of pageClaims) {
     if (!c.found || !c.quote || !c.value) continue;
+    if (
+      isPluginOnlyClaim(page, c) ||
+      isEnterpriseAuthClaim(page, c) ||
+      isPersonalAccessTokenClaim(page, c)
+    ) {
+      rejected++;
+      continue;
+    }
     const match = matchQuote(page.text, c.quote);
     if (match === "rejected") {
       rejected++;

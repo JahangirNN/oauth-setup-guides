@@ -12,7 +12,7 @@ const REVIEW_SIGNAL =
  * app creation. These artifacts should not inflate the self-serve setup time.
  */
 const REVIEW_ONLY_REQUIREMENT =
-  /\breview(?:s|ed|ing)?\b|privileged (?:intents?|scopes?|permissions?)|use[- ]case justification|app(?:lication)? (?:verification|approval|submission)|verification (?:process|requirements?)|approval (?:process|requirements?)/i;
+  /\breview(?:s|ed|ing)?\b|privileged (?:intents?|scopes?|permissions?)|use[- ]case justification|app(?:lication)? (?:verification|approval|submission)|verification (?:process|requirements?)|approval (?:process|requirements?)|submission|submit(?:ting)?|reviewers?|publish(?:ing)?|testing (?:instructions|video)|free trial/i;
 
 const SETUP_REQUIREMENT_SIGNAL =
   /\b(?:create|creating|register|registering|set ?up|configure|configured|install|generate|retrieve|obtain|developer (?:portal|console|dashboard)|app creation|application creation|redirect uri|callback url|client id|client secret)\b/i;

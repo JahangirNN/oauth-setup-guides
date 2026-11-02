@@ -125,6 +125,7 @@ export function GenerateClient() {
   const routerRef = useRef(router);
   const abortRef = useRef<AbortController | null>(null);
   const lastActivityRef = useRef(0);
+  const accessCodeRef = useRef("");
 
   const [input, setInput] = useState(appParam);
   const [activeInput, setActiveInput] = useState("");
@@ -134,6 +135,8 @@ export function GenerateClient() {
   const [publishedSlug, setPublishedSlug] = useState<string | null>(null);
   const [startedAt, setStartedAt] = useState(0);
   const [now, setNow] = useState(0);
+  const [accessCodeRequired, setAccessCodeRequired] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
 
   useEffect(() => {
     routerRef.current = router;
@@ -144,6 +147,38 @@ export function GenerateClient() {
       abortRef.current?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/health", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: unknown) => {
+        if (cancelled || !payload || typeof payload !== "object") return;
+        const generation = (payload as { generation?: { accessCodeRequired?: unknown } }).generation;
+        if (generation?.accessCodeRequired === true) setAccessCodeRequired(true);
+        const saved = window.sessionStorage.getItem("oauth-demo-code") ?? "";
+        if (saved) {
+          setAccessCode(saved);
+          accessCodeRef.current = saved;
+        }
+      })
+      .catch(() => {
+        // The generator still works if health is unavailable; the API will
+        // report an access-code error if one is actually required.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+
+  function handleAccessCodeChange(value: string) {
+    setAccessCode(value);
+    accessCodeRef.current = value;
+    if (value) window.sessionStorage.setItem("oauth-demo-code", value);
+    else window.sessionStorage.removeItem("oauth-demo-code");
+  }
 
   const startRun = useCallback(async (rawInput: string) => {
     const query = rawInput.trim();
@@ -263,9 +298,13 @@ export function GenerateClient() {
     };
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const code = accessCodeRef.current.trim();
+      if (code) headers["x-demo-code"] = code;
+
       const response = await fetch("/api/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ input: query }),
         signal: controller.signal,
       });
@@ -332,13 +371,14 @@ export function GenerateClient() {
     } catch (cause) {
       if (controller.signal.aborted) return;
       markActiveFailed();
-      setError(
+      const message =
         cause instanceof TypeError
           ? "Could not reach the generator. Check your connection and try again."
           : cause instanceof Error
             ? cause.message
-            : "Could not reach the generator."
-      );
+            : "Could not reach the generator.";
+      if (/access code/i.test(message)) setAccessCodeRequired(true);
+      setError(message);
       setStatus("error");
     }
   }, []);
@@ -433,6 +473,27 @@ export function GenerateClient() {
             )}
           </button>
         </div>
+        {accessCodeRequired ? (
+          <div className="mt-3 rounded-lg border border-line bg-subtle/50 p-3">
+            <label htmlFor="demo-access-code" className="text-xs font-medium text-ink">
+              Demo access code
+            </label>
+            <input
+              id="demo-access-code"
+              type="password"
+              value={accessCode}
+              onChange={(event) => handleAccessCodeChange(event.target.value)}
+              placeholder="Provided with the demo link"
+              autoComplete="off"
+              spellCheck={false}
+              className="mt-1.5 h-10 w-full rounded-lg border border-line bg-white px-3 text-sm text-ink placeholder:text-muted/80 focus:border-accent focus:outline-none focus:ring-4 focus:ring-accent/10"
+            />
+            <p className="mt-1.5 text-[11px] leading-relaxed text-muted">
+              This demo limits generation to prevent abuse. The code is stored only in this
+              browser tab.
+            </p>
+          </div>
+        ) : null}
         <p className="mt-2 text-xs leading-relaxed text-muted">
           Public documentation only. Nothing is installed or executed against the provider.
         </p>

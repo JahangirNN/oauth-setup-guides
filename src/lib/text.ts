@@ -44,13 +44,14 @@ export function sha256(input: string): string {
 }
 
 export function slugify(input: string): string {
-  return input
+  const slug = input
     .toLowerCase()
     .replace(/https?:\/\//, "")
     .replace(/\.[a-z]{2,}.*$/, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 48);
+  return slug || "app";
 }
 
 export function shortId(len = 6): string {

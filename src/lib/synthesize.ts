@@ -34,6 +34,31 @@ function parseReview(value: string | null): GuideHeader["reviewRequired"] {
   return "unknown";
 }
 
+function reviewCondition(claim: Claim | undefined): string | undefined {
+  if (!claim) return undefined;
+
+  const value = claim.value.trim();
+  const condition = value.replace(/^sometimes\s*[-—:]\s*/i, "").trim();
+  if (!/^(?:sometimes|yes|no|unknown|conditional|review may be required)$/i.test(condition)) {
+    return condition;
+  }
+
+  // Some extractors collapse a nuanced review claim to "sometimes". The quote
+  // still contains the condition; use its first sentence rather than rendering
+  // a meaningless "sometimes" note above the guide.
+  const quote = claim.quote.replace(/\s+/g, " ").trim();
+  if (!quote) return undefined;
+  const sentences = quote.split(/(?<=[.!?])\s+/);
+  const conditionSentence =
+    sentences.find((sentence) => /review|verif|approval|publish/i.test(sentence)) ?? sentences[0];
+  const first = (conditionSentence ?? quote)
+    .replace(/^[>*_`\s:;\-–—]+/, "")
+    .replace(/\*\*/g, "")
+    .trim();
+  if (!first || /^(?:sometimes|yes|no|unknown|conditional)$/i.test(first)) return undefined;
+  return first.length > 260 ? `${first.slice(0, 257)}...` : first;
+}
+
 function parseIndividual(value: string | null): GuideHeader["canIndividualFinish"] {
   if (!value) return "uncertain";
   const v = value.toLowerCase();
@@ -113,8 +138,8 @@ export function deriveHeader(
   const review = parseReview(reviewSource);
   const reviewNote = !reviewClaim && reviewInference
     ? reviewInference.basis
-    : review === "sometimes" && reviewClaim
-      ? reviewClaim
+    : review === "sometimes"
+      ? reviewCondition(claims.find((claim) => claim.slot === "reviewRequired"))
       : undefined;
 
   const reviewText = valueOf(claims, "reviewTimeline");
@@ -209,8 +234,11 @@ export function addAgentSection(markdown: string, header: GuideHeader): string {
       "No provider review or verification step appears in the sources reviewed; confirm that with the provider before launch. The remaining work is console setup and credential handling."
     );
   } else if (header.reviewRequired === "sometimes") {
+    const condition = header.reviewNote?.replace(/^sometimes\s*[-—:]\s*/i, "").trim();
     gate.push(
-      "Review is conditional in the sources reviewed. Whether your app triggers it depends on the scopes or data you request; confirm the current policy."
+      condition
+        ? `Review is conditional in the sources reviewed: ${condition} Confirm how the condition applies to your app before launch.`
+        : "Review is conditional in the sources reviewed. Whether your app triggers it depends on the scopes or data you request; confirm the current policy."
     );
   } else {
     gate.push(

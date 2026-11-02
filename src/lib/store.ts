@@ -6,6 +6,7 @@ const ROOT = process.cwd();
 const LIBRARY_DIR = path.join(ROOT, "data", "guides");
 const GENERATED_DIR = path.join(ROOT, "data", "generated");
 const INDEX_KEY = "guides:index";
+const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,120}$/;
 
 const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
 const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -40,6 +41,11 @@ async function readJson<T>(file: string): Promise<T | null> {
  * guide that was already produced. Returns whether the guide is durable.
  */
 export async function saveGuide(guide: Guide): Promise<boolean> {
+  if (!SLUG_PATTERN.test(guide.slug)) {
+    console.warn(`Refusing to save guide with an invalid slug: ${guide.slug}`);
+    return false;
+  }
+
   if (useRedis) {
     try {
       await redis(["SET", `guide:${guide.slug}`, JSON.stringify(guide)]);
@@ -61,6 +67,8 @@ export async function saveGuide(guide: Guide): Promise<boolean> {
 }
 
 export async function getGuide(slug: string): Promise<Guide | null> {
+  if (!SLUG_PATTERN.test(slug)) return null;
+
   if (useRedis) {
     try {
       const raw = (await redis(["GET", `guide:${slug}`])) as string | null;

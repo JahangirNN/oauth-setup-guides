@@ -7,6 +7,7 @@ import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { EvidenceAppendix } from "@/components/EvidenceAppendix";
 import { GuideHeaderCards } from "@/components/GuideHeaderCards";
 import { GuideMarkdown } from "@/components/GuideMarkdown";
+import { SetupAttempt } from "@/components/SetupAttempt";
 import { SourcesList } from "@/components/SourcesList";
 import { formatDate, formatDuration, plural } from "@/components/labels";
 
@@ -103,6 +104,9 @@ export default async function GuidePage({ params }: GuidePageProps) {
         </article>
 
         <div className="mt-14 space-y-12">
+          {guide.observations && guide.observations.length > 0 ? (
+            <SetupAttempt observations={guide.observations} />
+          ) : null}
           <EvidenceAppendix claims={guide.claims} inferences={guide.inferences ?? []} />
           <SourcesList sources={guide.sources} />
 
@@ -118,8 +122,15 @@ export default async function GuidePage({ params }: GuidePageProps) {
                 <span className="font-medium text-ink">Documented ≠ tested.</span> Items marked{" "}
                 <StatusBadge status="documented" /> are sourced from official docs, not executed.
               </p>
-              {evidenceSummary.byStatus.tested === 0 ? (
+              {evidenceSummary.byStatus.tested === 0 &&
+              !(guide.observations && guide.observations.length > 0) ? (
                 <p className="mt-1.5">No flow was executed for this guide.</p>
+              ) : null}
+              {guide.observations && guide.observations.length > 0 ? (
+                <p className="mt-1.5">
+                  {guide.observations.length} setup{" "}
+                  {plural(guide.observations.length, "attempt")} recorded separately in the setup-attempt section.
+                </p>
               ) : null}
             </div>
 

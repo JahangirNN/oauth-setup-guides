@@ -1,4 +1,12 @@
-import { displayNameFor, looksLikeUrl, registrableDomain, safeUrl } from "./domain";
+import {
+  displayNameFor,
+  isProviderHost,
+  looksLikeUrl,
+  registrableDomain,
+  safeUrl,
+} from "./domain";
+
+export { isProviderHost } from "./domain";
 import { stripHtml } from "./fetch";
 
 export interface SearchResult {
@@ -91,8 +99,31 @@ const KNOWN_DOC_ROOTS: Record<string, string[]> = {
   ],
   "slack.com": [
     "https://api.slack.com/authentication/oauth-v2",
-    "https://api.slack.com/apps",
+    "https://api.slack.com/authentication/basics",
+    "https://api.slack.com/start/overview",
+    "https://api.slack.com/start/quickstart",
     "https://api.slack.com/distribution",
+    "https://api.slack.com/authentication/rotation",
+  ],
+  "figma.com": [
+    "https://developers.figma.com/docs/rest-api/oauth-apps/",
+    "https://developers.figma.com/docs/rest-api/authentication/",
+    "https://developers.figma.com/docs/rest-api/republish-oauth-apps/",
+  ],
+  "asana.com": [
+    "https://developers.asana.com/docs/oauth",
+    "https://developers.asana.com/docs/oauth-scopes",
+    "https://developers.asana.com/docs/getting-started-with-asana-oauth",
+    "https://developers.asana.com/docs/authentication",
+  ],
+  "dropbox.com": [
+    "https://www.dropbox.com/developers/reference/oauth-guide",
+    "https://www.dropbox.com/developers/reference/auth-types",
+  ],
+  "notion.so": [
+    "https://developers.notion.com/guides/get-started/authorization",
+    "https://developers.notion.com/guides/get-started/public-connections",
+    "https://developers.notion.com/docs/authorization",
   ],
 };
 
@@ -451,13 +482,17 @@ export async function resolveApp(input: string): Promise<ResolvedApp> {
   );
 }
 
-/** A docs host on the provider's own brand, including a docs subdomain on another TLD. */
-export function isProviderHost(host: string, appDomain: string): boolean {
-  const appBase = registrableDomain(appDomain);
-  const hostBase = registrableDomain(host);
-  if (hostBase === appBase) return true;
-  const sameBrand = hostBase.split(".")[0] === appBase.split(".")[0];
-  return sameBrand && /^(?:docs?|developers?|api|learn|support|help)\./i.test(host);
+const REFERENCE_TOPIC =
+  /(?:^|[-_/])(?:oauth2?|auth|authentication|apps?|applications?|clients?|scopes?|tokens?)(?:$|[-_/])/i;
+
+/**
+ * API reference pages are often named after the operation ("create a timesheet
+ * approval status") and look like setup or review pages to a keyword matcher.
+ * Reject operation references while keeping OAuth/auth reference pages.
+ */
+function isApiReferenceOperation(pathname: string): boolean {
+  const path = pathname.replace(/\.md$/i, "");
+  return /\/reference\//i.test(path) && !REFERENCE_TOPIC.test(path);
 }
 
 function scoreCandidate(url: string, appDomain: string): { score: number; reason: string } {
@@ -497,7 +532,10 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
     score += 2;
     reasons.push("auth");
   }
-  if (/create|register|build|new/.test(pathname)) {
+  if (
+    /(?:^|[-_/])(?:create|creating|register|registering|build|building|new)(?:$|[-_/])/.test(pathname) &&
+    /(?:^|[-_/])(?:oauth2?|apps?|applications?|clients?|integrations?)(?:$|[-_/])/.test(pathname)
+  ) {
     score += 4;
     reasons.push("create");
   }
@@ -509,11 +547,16 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
     score -= 5;
     reasons.push("old-version");
   }
-  if (/app|application|credential|client/.test(pathname)) {
+  if (/(?:^|[-_/])(?:apps?|applications?|credentials?|clients?)(?:$|[-_/])/.test(pathname)) {
     score += 2;
     reasons.push("app");
   }
-  if (/verification|review|publish|approval|scopes?/.test(pathname)) {
+  if (
+    /verification|review|publish|approval|scopes?/.test(pathname) &&
+    /(?:^|[-_/])(?:oauth2?|apps?|applications?|clients?|integrations?|developers?|review|verification|publish|scopes?)(?:$|[-_/])/.test(
+      pathname
+    )
+  ) {
     score += 3;
     reasons.push("review");
   }
@@ -546,6 +589,10 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
   if (/\/\.well-known\/|\/api\/|\/v[12]\//.test(pathname)) {
     score -= 10;
     reasons.push("api-endpoint");
+  }
+  if (isApiReferenceOperation(pathname)) {
+    score -= 15;
+    reasons.push("api-reference-operation");
   }
   if (/^(app|dashboard|console|admin)\./i.test(host) && !/\/docs?\//.test(pathname)) {
     score -= 12;
@@ -583,6 +630,14 @@ function scoreCandidate(url: string, appDomain: string): { score: number; reason
   if (/differences-between|rate-limits|custom-badge|troubleshooting/.test(pathname)) {
     score -= 6;
     reasons.push("off-topic");
+  }
+  if (/republish|re-publish|migrat/.test(pathname)) {
+    score -= 5;
+    reasons.push("maintenance");
+  }
+  if (/with-plugins|plugin.*oauth|oauth.*plugin/.test(pathname)) {
+    score -= 6;
+    reasons.push("plugin-oauth");
   }
   if (/custom-badge|badge/.test(pathname)) {
     score -= 12;
@@ -646,16 +701,21 @@ export function isUsefulCandidateUrl(raw: string): boolean {
   }
   if (/^api\./i.test(url.hostname) && /^\/(?:oauth2?|v[12])\b/.test(pathname)) return false;
   if (/\/\.well-known\//.test(pathname)) return false;
+  if (isApiReferenceOperation(pathname)) return false;
 
   return true;
 }
 
+const FACET_CONTEXT =
+  /(?:^|[\s/_.-])(?:oauth2?|apps?|applications?|clients?|integrations?|developers?|publish(?:ing)?|verification|review)(?:$|[\s/_.-])/i;
 const FACET_PATTERNS: Record<CandidateFacet, RegExp> = {
   setup:
-    /\b(?:create|register|set ?up|configure|getting[\s-]?started|quick[\s-]?start|app creation|application creation|new (?:oauth )?(?:app|application|client|integration))\b/i,
+    /\b(?:create|creating|register|registering|set ?up|configure|getting[\s-]?started|quick[\s-]?start|app creation|application creation|new (?:oauth )?(?:app|application|client|integration))\b/i,
   scopes: /\b(?:scopes?|permissions?|sensitive|restricted)\b/i,
-  review: /\b(?:review|verif(?:y|ied|ication)|approval|approve|publish(?:ing)?|submission|submit|compliance|assessment)\b/i,
-  auth: /\b(?:oauth ?2?|authoriz(?:e|ation|ing)|authentication|auth|access tokens?|refresh tokens?|bearer tokens?|redirect uri|callback url|client (?:id|secret)|public connections?)\b/i,
+  review:
+    /\b(?:review|verif(?:y|ied|ication)|approval|approve|publish(?:ing)?|submission|submit|compliance|assessment)\b/i,
+  auth:
+    /\b(?:oauth ?2?|authoriz(?:e|ation|ing)|authentication|auth|access tokens?|refresh tokens?|bearer tokens?|redirect uri|callback url|client (?:id|secret)|public connections?)\b/i,
 };
 
 /** Deterministic coverage buckets from the URL and link title. */
@@ -666,8 +726,20 @@ export function candidateFacets(candidate: Pick<Candidate, "url" | "title">): Ca
   } catch {
     // keep the raw URL
   }
-  const hay = `${decoded} ${candidate.title}`;
-  return CANDIDATE_FACETS.filter((facet) => FACET_PATTERNS[facet].test(hay));
+  // Exclude the host from facet context: an API reference under
+  // developers.example.com is still an API reference, not app-setup docs.
+  let path = decoded;
+  try {
+    path = new URL(decoded).pathname;
+  } catch {
+    // keep the raw URL
+  }
+  const hay = `${path} ${candidate.title}`;
+  const contextual = FACET_CONTEXT.test(hay);
+  return CANDIDATE_FACETS.filter((facet) => {
+    if ((facet === "setup" || facet === "review") && !contextual) return false;
+    return FACET_PATTERNS[facet].test(hay);
+  });
 }
 
 function rankCandidates(candidates: Candidate[]): Candidate[] {
@@ -764,9 +836,10 @@ function extractLinks(html: string, base: string): ExtractedLink[] {
 
 function titleAdjustment(title: string): number {
   let adjustment = 0;
-  if (/create|register/i.test(title)) adjustment += 3;
-  if (/scope/i.test(title)) adjustment += 2;
-  if (/review|verification|approval/i.test(title)) adjustment += 2;
+  const appContext = /(?:oauth|app|application|client|integration)/i.test(title);
+  if (/(?:create|register)/i.test(title) && appContext) adjustment += 3;
+  if (/(?:scope|permission)/i.test(title) && appContext) adjustment += 2;
+  if (/(?:review|verification|approval)/i.test(title) && appContext) adjustment += 2;
   if (/differences|rate limit|custom badge|reviewing your|migrating/i.test(title)) adjustment -= 8;
   if (/authenticating to|authorizing oauth apps/i.test(title)) adjustment -= 5;
   if (/best practice/i.test(title)) adjustment -= 2;

@@ -109,6 +109,36 @@ export interface EvidenceSummary {
   numericViolations?: string[];
 }
 
+export type ObservationOutcome = "observed" | "blocked" | "not-attempted";
+
+export interface SetupObservationStep {
+  label: string;
+  detail: string;
+  outcome: ObservationOutcome;
+}
+
+/**
+ * A human- or browser-agent-run setup attempt. Kept separate from quoted
+ * claims: an observation is what happened in a console/API, not what a source
+ * says should happen.
+ */
+export interface SetupObservation {
+  id: string;
+  provider: string;
+  attemptedAt: string;
+  method: "console" | "api" | "browser-agent";
+  outcome: "created" | "partial" | "blocked";
+  steps: SetupObservationStep[];
+  created: {
+    oauthApp: boolean;
+    clientId: boolean;
+    clientSecret: boolean;
+    submittedForReview: boolean;
+  };
+  credentialsStored: false;
+  notes: string;
+}
+
 export interface GuideSource {
   url: string;
   title: string;
@@ -124,6 +154,7 @@ export interface Guide {
   inferences: Inference[];
   sources: GuideSource[];
   evidenceSummary: EvidenceSummary;
+  observations?: SetupObservation[];
   generatedAt: string;
   model: string;
   durationMs: number;

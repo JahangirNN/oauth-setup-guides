@@ -11,7 +11,20 @@ import {
 import { assessPageUsability, contentFingerprint } from "../src/lib/fetch";
 import { buildExtractionExcerpt } from "../src/lib/extract";
 import { inferSetupTime } from "../src/lib/infer";
-import { matchQuote } from "../src/lib/text";
+import { validateSetupObservation } from "../src/lib/observations";
+import {
+  isEnterpriseAuthClaim,
+  isPersonalAccessTokenClaim,
+  isPluginOnlyClaim,
+} from "../src/lib/verify";
+import {
+  accessCodeRequired,
+  beginGeneration,
+  hasValidAccessCode,
+  inputTooLong,
+  requestIp,
+} from "../src/lib/limits";
+import { matchQuote, slugify } from "../src/lib/text";
 import type { Claim } from "../src/lib/types";
 
 function claim(value: string): Claim {
@@ -101,6 +114,37 @@ assert.equal(
   "genuine app-creation artifacts must still affect the estimate"
 );
 assert.match(realSetup?.basis ?? "", /prerequisite artifacts: privacy, policy, domain/);
+
+const publicAppReviewSetup = inferSetupTime([
+  requirementClaim(
+    "A callback URL on an external server is required. For public apps, the submission requires a logo, a description, testing instructions, and an optional testing video."
+  ),
+]);
+assert.equal(
+  publicAppReviewSetup?.value,
+  "~5-10 minutes",
+  "public-app submission artifacts must not inflate setup time"
+);
+assert.doesNotMatch(publicAppReviewSetup?.basis ?? "", /testing video|video/);
+
+const conditionalReview = deriveHeader(
+  "Figma",
+  "figma.com",
+  [
+    {
+      ...claim("sometimes"),
+      slot: "reviewRequired",
+      quote:
+        "When you publish a public OAuth app, Figma reviews it. Private apps are published without review.",
+    },
+  ]
+);
+assert.equal(conditionalReview.reviewRequired, "sometimes");
+assert.match(
+  conditionalReview.reviewNote ?? "",
+  /publish a public OAuth app|reviews it/i,
+  "a collapsed review value should recover its condition from the quote"
+);
 
 assert.equal(guideLooksComplete("Final will be here"), false);
 assert.equal(guideLooksComplete("## Do you need your own OAuth app?\n\nToo short."), false);
@@ -196,6 +240,119 @@ assert.equal(isUsefulCandidateUrl("https://docs.example.com/oauth/apps.md"), tru
 assert.equal(isUsefulCandidateUrl("https://linear.app/docs/diffs#organization-setup\\"), false);
 assert.equal(isUsefulCandidateUrl("https://linear.app/changelog/2020-12-08-oauth2"), false);
 assert.equal(isUsefulCandidateUrl("https://github.com/login/oauth/authorize?client_id=x"), false);
+assert.equal(
+  isUsefulCandidateUrl("https://developers.asana.com/reference/createtimesheetapprovalstatus.md"),
+  false,
+  "API operation references must not look like app-setup pages"
+);
+assert.equal(
+  isUsefulCandidateUrl("https://developers.asana.com/reference/oauth-scopes"),
+  true,
+  "OAuth reference pages must remain eligible"
+);
+assert.equal(
+  isPluginOnlyClaim(
+    { url: "https://developers.figma.com/docs/plugins/oauth-with-plugins/", title: "OAuth with Plugins" },
+    {
+      slot: "requirements",
+      value: "A plugin must be registered with a third-party OAuth provider.",
+      quote: "You must be able to register your plugin with the OAuth provider you plan to use.",
+    }
+  ),
+  true,
+  "plugin-specific requirements must not become app-setup prerequisites"
+);
+assert.equal(
+  isPluginOnlyClaim(
+    { url: "https://developers.figma.com/docs/rest-api/oauth-apps/", title: "OAuth apps" },
+    {
+      slot: "requirements",
+      value: "A publicly available HTTPS server is required.",
+      quote: "You must have a publicly available HTTPS server.",
+    }
+  ),
+  false
+);
+assert.equal(
+  isEnterpriseAuthClaim(
+    {
+      url: "https://developers.notion.com/guides/mcp/enterprise-managed-authorization",
+      title: "Enterprise-managed authorization",
+    },
+    {
+      slot: "rejectionCauses",
+      value: "The token exchange fails when the assertion audience is wrong.",
+      quote: "The assertion fails when aud contains more than one value.",
+    }
+  ),
+  true,
+  "enterprise assertion failures must not become OAuth-app rejection causes"
+);
+assert.equal(
+  isPersonalAccessTokenClaim(
+    {
+      url: "https://developers.notion.com/guides/get-started/personal-access-tokens",
+      title: "Personal access tokens",
+    },
+    {
+      slot: "requirements",
+      value: "Guests and restricted members cannot create PATs.",
+      quote: "Guests and restricted members cannot create personal access tokens.",
+    }
+  ),
+  true,
+  "PAT-only requirements must not become OAuth-app prerequisites"
+);
+assert.equal(
+  isPersonalAccessTokenClaim(
+    {
+      url: "https://developers.notion.com/guides/get-started/personal-access-tokens",
+      title: "Personal access tokens",
+    },
+    {
+      slot: "tokenModel",
+      value: "A public connection issues an OAuth access token.",
+      quote: "The public connection issues an OAuth access token for each user.",
+    }
+  ),
+  false,
+  "PAT pages may still mention OAuth explicitly"
+);
+assert.equal(
+  isPersonalAccessTokenClaim(
+    {
+      url: "https://developers.asana.com/docs/personal-access-token",
+      title: "Personal access token",
+    },
+    {
+      slot: "canIndividualFinish",
+      value: "Any individual can create personal access tokens.",
+      quote: "Any user can create personal access tokens.",
+    }
+  ),
+  true,
+  "PAT eligibility must not be presented as OAuth-app eligibility"
+);
+assert.deepEqual(
+  candidateFacets(
+    candidate(
+      "https://developers.asana.com/reference/createtimesheetapprovalstatus.md",
+      "Create a timesheet approval status",
+      20
+    )
+  ),
+  [],
+  "an unrelated API operation must not occupy setup or review coverage"
+);
+assert.ok(
+  candidateFacets(
+    candidate(
+      "https://developers.asana.com/docs/getting-started-with-asana-oauth",
+      "Getting started with Asana OAuth",
+      13
+    )
+  ).includes("setup")
+);
 
 assert.equal(isProviderHost("developers.notion.com", "notion.so"), true);
 assert.equal(isProviderHost("docs.example.com", "example.com"), true);
@@ -308,5 +465,114 @@ for (const part of excerpt.text.split("\n\n[...]\n\n")) {
 const reviewQuote = "Apps require verification before they can be used by other users.";
 assert.equal(matchQuote(longPage, reviewQuote), "exact");
 assert.equal(buildExtractionExcerpt("Short page", 45_000).text, "Short page");
+assert.equal(slugify("!!! 微信"), "app", "non-Latin-only names still need a valid slug");
+assert.equal(slugify("Acme Notes"), "acme-notes");
+
+assert.equal(inputTooLong("x".repeat(160)), false);
+assert.equal(inputTooLong("x".repeat(161)), true);
+assert.equal(requestIp(new Headers({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" })), "203.0.113.9");
+assert.equal(requestIp(new Headers({ "x-real-ip": "203.0.113.10" })), "203.0.113.10");
+assert.equal(accessCodeRequired(), false);
+assert.equal(hasValidAccessCode(new Headers()), true);
+
+const previousCode = process.env.GENERATE_ACCESS_CODE;
+process.env.GENERATE_ACCESS_CODE = "demo-secret";
+assert.equal(accessCodeRequired(), true);
+assert.equal(hasValidAccessCode(new Headers({ "x-demo-code": "demo-secret" })), true);
+assert.equal(hasValidAccessCode(new Headers({ "x-demo-code": "wrong" })), false);
+assert.equal(hasValidAccessCode(new Headers()), false);
+if (previousCode === undefined) delete process.env.GENERATE_ACCESS_CODE;
+else process.env.GENERATE_ACCESS_CODE = previousCode;
+
+if (!process.env.UPSTASH_REDIS_REST_URL) {
+  const previousAccessCode = process.env.GENERATE_ACCESS_CODE;
+  delete process.env.GENERATE_ACCESS_CODE;
+  const limitRequest = () =>
+    new Request("http://localhost/api/generate", {
+      headers: { "x-forwarded-for": "198.51.100.20" },
+    });
+  const first = await beginGeneration(limitRequest(), "example.com");
+  assert.equal(first.allowed, true);
+  const concurrent = await beginGeneration(limitRequest(), "example.com");
+  assert.equal(concurrent.allowed, false, "same-IP runs must be single-flight");
+  await first.release();
+  const second = await beginGeneration(limitRequest(), "example.com");
+  assert.equal(second.allowed, true);
+  await second.release();
+  const third = await beginGeneration(limitRequest(), "example.com");
+  assert.equal(third.allowed, true);
+  await third.release();
+  const overLimit = await beginGeneration(limitRequest(), "example.com");
+  assert.equal(overLimit.allowed, false, "per-IP window must stop the fourth run");
+  assert.equal(overLimit.status, 429);
+
+  const previousConcurrent = process.env.GENERATE_MAX_CONCURRENT;
+  process.env.GENERATE_MAX_CONCURRENT = "1";
+  const firstIp = new Request("http://localhost/api/generate", {
+    headers: { "x-forwarded-for": "198.51.100.21" },
+  });
+  const secondIp = new Request("http://localhost/api/generate", {
+    headers: { "x-forwarded-for": "198.51.100.22" },
+  });
+  const globalFirst = await beginGeneration(firstIp, "example.com");
+  assert.equal(globalFirst.allowed, true);
+  const globalSecond = await beginGeneration(secondIp, "example.com");
+  assert.equal(globalSecond.allowed, false, "the configured global cap must be enforced");
+  await globalFirst.release();
+  const globalAfterRelease = await beginGeneration(secondIp, "example.com");
+  assert.equal(globalAfterRelease.allowed, true);
+  await globalAfterRelease.release();
+
+  if (previousConcurrent === undefined) delete process.env.GENERATE_MAX_CONCURRENT;
+  else process.env.GENERATE_MAX_CONCURRENT = previousConcurrent;
+  if (previousAccessCode === undefined) delete process.env.GENERATE_ACCESS_CODE;
+  else process.env.GENERATE_ACCESS_CODE = previousAccessCode;
+}
+
+const validObservation = {
+  id: "obs-test",
+  provider: "Example",
+  attemptedAt: "2026-10-29",
+  method: "console",
+  outcome: "created",
+  steps: [{ label: "Open console", detail: "Reached the app form.", outcome: "observed" }],
+  created: {
+    oauthApp: true,
+    clientId: true,
+    clientSecret: true,
+    submittedForReview: false,
+  },
+  credentialsStored: false,
+  notes: "Client secret was not copied.",
+};
+assert.deepEqual(validateSetupObservation(validObservation), []);
+assert.ok(
+  validateSetupObservation({ ...validObservation, credentialsStored: true }).some((error) =>
+    error.includes("credentialsStored")
+  ),
+  "observations that store credentials must be rejected"
+);
+assert.ok(
+  validateSetupObservation({ ...validObservation, notes: "client_secret=abcdefghijklmnop" }).some(
+    (error) => error.includes("credential")
+  ),
+  "secret-like values must be rejected even in free text"
+);
+assert.ok(
+  validateSetupObservation({
+    ...validObservation,
+    outcome: "created",
+    created: { ...validObservation.created, oauthApp: false },
+  }).some((error) => error.includes("created outcome")),
+  "a created outcome must not claim the app was never created"
+);
+assert.ok(
+  validateSetupObservation({
+    ...validObservation,
+    outcome: "blocked",
+    created: { ...validObservation.created, oauthApp: true },
+  }).some((error) => error.includes("outcome=partial")),
+  "a blocked outcome must use partial when the app was created"
+);
 
 console.log("selftest passed");

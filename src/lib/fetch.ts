@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { registrableDomain, safeUrl } from "./domain";
+import { isProviderHost, safeUrl } from "./domain";
 import { normalize, sha256 } from "./text";
 import type { PageDoc, SourceTier } from "./types";
 
@@ -165,9 +165,7 @@ function classifyTier(url: string, appDomain: string): SourceTier {
     return 5;
   }
 
-  const appBase = registrableDomain(appDomain);
-  const hostBase = registrableDomain(host);
-  const firstParty = appBase === hostBase;
+  const firstParty = isProviderHost(host, appDomain);
 
   if (/(reddit|stackoverflow|youtube|medium|quora|discourse|forum|community\.)/i.test(host)) return 5;
   if (/(nango|zapier|apideck|merge|workos|paragon|prismatic)/i.test(host)) return 4;
